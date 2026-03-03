@@ -53,30 +53,21 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     const data = s.data() as GameRoom;
                     if (data) {
                         // ✅ FIX: s.data() doesn't include the document ID, 
-                        // so we add it manually for the join/leave logic
+                        // so we add it manually for join/leave logic
                         const roomWithId = { ...data, id: s.id };
                         setRoom(roomWithId);
                         setGs(roomWithId.gameState);
                         setLoadingRoom(false);
-
-                        // Handle room closure or player changes
-                        if (data.status === 'finished' && data.gameState.flashMessage?.includes('إغلاق الطاولة')) {
-                            setTimeout(() => onExitGame(), 3000);
-                        }
-
-                        // Show flash messages for player changes
-                        if (data.gameState.flashMessage?.includes('تم استبدال اللاعب')) {
-                            setTimeout(() => {
-                                setGs(prev => prev ? { ...prev, flashMessage: null } : null);
-                            }, 3000);
-                        }
+                        
+                        console.log('✅ Room joined successfully:', roomWithId.id);
                     } else {
                         // Room deleted
+                        console.error('❌ Room deleted');
                         onExitGame();
                     }
                 });
             } catch (err) {
-                console.error(err);
+                console.error('❌ Failed to join room:', err);
                 onExitGame();
             }
         };
