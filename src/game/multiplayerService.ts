@@ -11,7 +11,7 @@ import {
     limit,
     runTransaction
 } from 'firebase/firestore';
-import { ref, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
+import { ref, onDisconnect as rtdbOnDisconnect, remove } from 'firebase/database';
 import { GameRoom } from './basraTypes';
 import { createInitialState, dealNewRound } from './basraEngine';
 
@@ -253,15 +253,33 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
                 });
                 
-                // Schedule room deletion after 5 seconds
+                // Delete room immediately after transaction
                 setTimeout(async () => {
                     try {
                         await deleteDoc(roomRef);
-                        console.log(`🗑️ Room ${roomId} deleted - no human players left`);
+                        console.log(`🗑️ Room ${roomId} deleted immediately - no human players left`);
+                        
+                        // Also try to delete from RTDB if it exists
+                        try {
+                            const rtdbRef = ref(rtdb, `disconnects/${roomId}`);
+                            await remove(rtdbRef);
+                            console.log(`🗑️ RTDB data for room ${roomId} also deleted`);
+                        } catch (rtdbError) {
+                            console.warn('RTDB deletion failed (this is ok):', rtdbError);
+                        }
                     } catch (error) {
                         console.error('Error deleting room:', error);
+                        // Try one more time after 2 seconds
+                        setTimeout(async () => {
+                            try {
+                                await deleteDoc(roomRef);
+                                console.log(`🗑️ Room ${roomId} deleted on retry`);
+                            } catch (retryError) {
+                                console.error('Room deletion failed on retry:', retryError);
+                            }
+                        }, 2000);
                     }
-                }, 5000);
+                }, 1000);
             } else {
                 let updatedPlayers = [...roomData.players];
                 let updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
