@@ -205,8 +205,14 @@ export async function replacePlayerWithBot(roomId: string, playerUid: string) {
             // Update playerUids to remove exited player
             const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
 
+            // Keep the same status based on game phase
+            const gamePhase = roomData.gameState.phase;
+            
+            // Only keep 'playing' status if game is actually playing
+            const newStatus = (gamePhase === 'playing') ? 'playing' : 'waiting';
+            
             transaction.update(roomRef, {
-                status: 'playing',
+                status: newStatus,
                 players: updatedPlayers,
                 playerCount: updatedPlayerUids.length,
                 playerUids: updatedPlayerUids,
