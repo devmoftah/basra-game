@@ -92,6 +92,24 @@ function App() {
             <div className="app-loading">
                 <div className="loader"></div>
                 <span>جاري تحميل عالم البصرة...</span>
+                <button 
+                    className="demo-mode-btn"
+                    onClick={() => {
+                        setUser({
+                            uid: 'demo',
+                            displayName: 'لاعب تجريبي',
+                            coins: 1500,
+                            purchasedSkins: ['k1', 't2'],
+                            activeCardSkinId: 'k1',
+                            activeTableSkinId: 't2',
+                            stats: { wins: 0, losses: 0, totalGames: 0 }
+                        });
+                        setScreen('lobby');
+                        setLoading(false);
+                    }}
+                >
+                    دخول تجريبي (بدون انترنت)
+                </button>
             </div>
         );
     }
