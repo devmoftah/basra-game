@@ -168,20 +168,10 @@ export async function setupPlayerDisconnectHandler(roomId: string, playerUid: st
 
 export async function markVoluntaryExit(roomId: string, playerUid: string) {
     try {
-        // Mark voluntary exit in RTDB
-        const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
-        const disconnect = rtdbOnDisconnect(disconnectRef);
-        await disconnect.set({
-            timestamp: Date.now(),
-            playerUid: playerUid,
-            roomId: roomId,
-            isVoluntaryExit: true // Mark as voluntary exit
-        });
-        
-        // Handle the disconnect immediately
+        // Handle the disconnect immediately - this is enough for voluntary exit
         await handlePlayerDisconnect(roomId, playerUid);
     } catch (error) {
-        console.warn('⚠️ Failed to mark voluntary exit in RTDB:', error);
+        console.warn('⚠️ Failed to handle voluntary exit:', error);
     }
 }
 
