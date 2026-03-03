@@ -4,7 +4,7 @@
 
 .purchases-screen {
     min-height: 100vh;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    background: var(--table-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -12,7 +12,7 @@
 }
 
 .purchases-container.luxury {
-    background: linear-gradient(145deg, #1e1e30 0%, #252538 50%, #1a1a2e 100%);
+    background: var(--panel-bg);
     border-radius: 24px;
     box-shadow: 
         0 25px 80px rgba(0, 0, 0, 0.6),
@@ -21,7 +21,7 @@
     width: 100%;
     max-height: 95vh;
     overflow-y: auto;
-    border: 2px solid #d4a017;
+    border: 2px solid var(--sadu-yellow);
     position: relative;
 }
 
@@ -32,20 +32,20 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #d4a017 0%, #ffd700 50%, #d4a017 100%);
+    background: linear-gradient(90deg, var(--sadu-yellow) 0%, var(--sadu-yellow) 50%, var(--sadu-yellow) 100%);
     border-radius: 24px 24px 0 0;
 }
 
 /* Header */
 .purchases-header.luxury-header {
-    background: linear-gradient(135deg, #8B2C23 0%, #6b1e16 100%);
-    color: white;
+    background: var(--sadu-red);
+    color: var(--text-primary);
     padding: 20px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     border-radius: 22px 22px 0 0;
-    border-bottom: 3px solid #d4a017;
+    border-bottom: 3px solid var(--sadu-yellow);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
@@ -69,9 +69,9 @@
 }
 
 .back-btn.luxury-btn {
-    background: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
+    background: var(--sadu-yellow);
     border: none;
-    color: #1a1a2e;
+    color: var(--text-primary);
     font-size: 20px;
     font-weight: bold;
     width: 44px;
@@ -79,24 +79,24 @@
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(212, 160, 23, 0.4);
+    box-shadow: 0 4px 15px rgba(209, 154, 49, 0.4);
 }
 
 .back-btn.luxury-btn:hover {
     transform: scale(1.1);
-    box-shadow: 0 6px 20px rgba(212, 160, 23, 0.6);
-    background: linear-gradient(135deg, #ffd700 0%, #d4a017 100%);
+    box-shadow: 0 6px 20px rgba(209, 154, 49, 0.6);
+    background: var(--sadu-green);
 }
 
 .coins-display.luxury-coins {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: linear-gradient(135deg, rgba(212, 160, 23, 0.2) 0%, rgba(139, 44, 35, 0.2) 100%);
-    border: 2px solid #d4a017;
+    background: rgba(209, 154, 49, 0.2);
+    border: 2px solid var(--sadu-yellow);
     border-radius: 25px;
     padding: 8px 18px;
-    color: #ffd700;
+    color: var(--text-primary);
     font-size: 15px;
     font-weight: 700;
     backdrop-filter: blur(10px);
@@ -135,10 +135,10 @@
 }
 
 .tab-btn.active {
-    background: linear-gradient(135deg, #8B2C23 0%, #6b1e16 100%);
-    border-color: #d4a017;
-    color: #ffd700;
-    box-shadow: 0 4px 20px rgba(212, 160, 23, 0.3);
+    background: var(--sadu-red);
+    border-color: var(--sadu-yellow);
+    color: var(--text-primary);
+    box-shadow: 0 4px 20px rgba(209, 154, 49, 0.3);
 }
 
 .tab-icon {
@@ -146,8 +146,8 @@
 }
 
 .tab-count {
-    background: rgba(212, 160, 23, 0.3);
-    color: #ffd700;
+    background: rgba(209, 154, 49, 0.3);
+    color: var(--text-primary);
     font-size: 12px;
     padding: 2px 8px;
     border-radius: 10px;
@@ -175,7 +175,7 @@
 }
 
 .empty-purchases h3 {
-    color: #ffd700;
+    color: var(--text-primary);
     margin-bottom: 12px;
     font-size: 22px;
     font-weight: 700;
@@ -192,8 +192,8 @@
     align-items: center;
     gap: 10px;
     margin: 0 auto;
-    background: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
-    color: #1a1a2e;
+    background: var(--sadu-green);
+    color: var(--text-primary);
     border: none;
     padding: 14px 28px;
     border-radius: 30px;
@@ -201,13 +201,13 @@
     font-size: 16px;
     font-weight: 700;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 20px rgba(212, 160, 23, 0.4);
+    box-shadow: 0 4px 20px rgba(209, 154, 49, 0.4);
 }
 
 .go-to-store-btn.luxury-store-btn:hover {
     transform: translateY(-3px);
-    box-shadow: 0 8px 30px rgba(212, 160, 23, 0.5);
-    background: linear-gradient(135deg, #ffd700 0%, #d4a017 100%);
+    box-shadow: 0 8px 30px rgba(209, 154, 49, 0.5);
+    background: var(--sadu-yellow);
 }
 
 /* Grid */
@@ -236,10 +236,10 @@
 }
 
 .luxury-item.active-item {
-    border-color: #d4a017;
+    border-color: var(--sadu-yellow);
     box-shadow: 
-        0 0 30px rgba(212, 160, 23, 0.3),
-        inset 0 0 20px rgba(212, 160, 23, 0.1);
+        0 0 30px rgba(209, 154, 49, 0.3),
+        inset 0 0 20px rgba(209, 154, 49, 0.1);
 }
 
 .item-glow {
@@ -344,8 +344,8 @@
 }
 
 .active-badge {
-    background: linear-gradient(135deg, #2d6b4a 0%, #1e5038 100%);
-    color: #fff;
+    background: var(--sadu-green);
+    color: var(--text-primary);
     font-size: 11px;
     padding: 4px 10px;
     border-radius: 12px;
@@ -354,8 +354,8 @@
 }
 
 .new-badge {
-    background: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
-    color: #1a1a2e;
+    background: var(--sadu-yellow);
+    color: var(--text-primary);
     font-size: 11px;
     padding: 4px 10px;
     border-radius: 12px;
@@ -395,15 +395,15 @@
     right: 12px;
     width: 28px;
     height: 28px;
-    background: linear-gradient(135deg, #d4a017 0%, #b8860b 100%);
+    background: var(--sadu-yellow);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 14px;
-    color: #1a1a2e;
+    color: var(--text-primary);
     font-weight: bold;
-    box-shadow: 0 4px 12px rgba(212, 160, 23, 0.4);
+    box-shadow: 0 4px 12px rgba(209, 154, 49, 0.4);
 }
 
 /* Footer */
@@ -439,7 +439,7 @@
 }
 
 .stat-value {
-    color: #ffd700;
+    color: var(--sadu-yellow);
     font-weight: 700;
     font-size: 16px;
 }
@@ -453,7 +453,7 @@
 .loading.luxury-loading {
     text-align: center;
     padding: 80px;
-    color: #d4a017;
+    color: var(--sadu-yellow);
     font-size: 18px;
     font-weight: 500;
 }
