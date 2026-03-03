@@ -183,7 +183,7 @@ export async function replacePlayerWithBot(roomId: string, playerUid: string) {
             updatedPlayers[playerIndex] = {
                 ...updatedPlayers[playerIndex],
                 isHuman: false,
-                uid: undefined,
+                uid: `bot-${playerIndex}`,
                 name: `بوت ${playerIndex + 1}`
             };
             
