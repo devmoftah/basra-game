@@ -3,11 +3,12 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-    base: './',
+    base: '/basra-game/',
     plugins: [
         react(),
         VitePWA({
             registerType: 'autoUpdate',
+            injectRegister: 'auto',
             includeAssets: ['favicon.ico', 'assets/skins/cards/card_back_darnes.png'],
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
