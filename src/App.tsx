@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from './firebase';
+import { auth, db, firebaseReady, firebaseInitError } from './firebase';
 import LobbyScreen from './screens/LobbyScreen';
 import GameScreen from './screens/GameScreen';
 import StoreScreen from './screens/StoreScreen';
@@ -17,6 +17,46 @@ function App() {
     const [screen, setScreen] = useState<Screen>('auth');
     const [loading, setLoading] = useState(true);
 
+    if (!firebaseReady) {
+        return (
+            <div className="app-loading">
+                <span>تعذّر تشغيل Firebase</span>
+                <small style={{ fontSize: '12px', opacity: 0.85, marginTop: '10px', maxWidth: 420, textAlign: 'center' }}>
+                    السبب: مفتاح API غير صالح أو إعدادات Firebase غير موجودة.
+                    {' '}
+                    تأكد من ضبط متغيرات البيئة VITE_FIREBASE_* في ملف .env ثم أعد تشغيل المشروع.
+                </small>
+                <small style={{ fontSize: '11px', opacity: 0.7, marginTop: '10px', maxWidth: 520, textAlign: 'center' }}>
+                    {String((firebaseInitError as any)?.message || firebaseInitError || '')}
+                </small>
+                <button
+                    className="demo-mode-btn"
+                    onClick={() => {
+                        setUser({
+                            uid: 'demo',
+                            displayName: 'لاعب تجريبي',
+                            coins: 1500,
+                            purchasedSkins: ['k1', 't2'],
+                            activeCardSkinId: 'k1',
+                            activeTableSkinId: 't2',
+                            stats: { wins: 0, losses: 0, totalGames: 0 }
+                        });
+                        setScreen('lobby');
+                        setLoading(false);
+                    }}
+                >
+                    دخول تجريبي (بدون Firebase)
+                </button>
+            </div>
+        );
+    }
+
+    useEffect(() => {
+        if (!loading && !user && screen !== 'auth') {
+            setScreen('auth');
+        }
+    }, [loading, user, screen]);
+
     useEffect(() => {
         let unsubData: (() => void) | null = null;
 
@@ -26,9 +66,8 @@ function App() {
             console.error("Firebase connection timeout - showing auth screen");
             setLoading(false);
             setScreen('auth');
-        }, 2000); // Reduced from 3000ms
+        }, 2000);
 
-        // Add fallback for demo mode
         const fallbackTimeout = setTimeout(() => {
             console.warn("Using demo mode - Firebase not available");
             setUser({
@@ -42,7 +81,13 @@ function App() {
             });
             setScreen('lobby');
             setLoading(false);
-        }, 4000); // Reduced from 5000ms
+        }, 4000);
+
+        if (!auth || !db) {
+            setLoading(false);
+            setScreen('auth');
+            return;
+        }
 
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             clearTimeout(timeoutId);
