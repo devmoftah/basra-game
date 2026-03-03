@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db, firebaseReady, firebaseInitError } from './firebase';
+import { auth, db } from './firebase';
 import LobbyScreen from './screens/LobbyScreen';
 import GameScreen from './screens/GameScreen';
 import StoreScreen from './screens/StoreScreen';
@@ -18,65 +18,9 @@ function App() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!firebaseReady && import.meta.env.PROD) {
-            const t = setTimeout(() => {
-                setUser({
-                    uid: 'demo',
-                    displayName: 'لاعب تجريبي',
-                    coins: 1500,
-                    purchasedSkins: ['k1', 't2'],
-                    activeCardSkinId: 'k1',
-                    activeTableSkinId: 't2',
-                    stats: { wins: 0, losses: 0, totalGames: 0 }
-                });
-                setScreen('lobby');
-                setLoading(false);
-            }, 800);
-            return () => clearTimeout(t);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (!loading && !user && screen !== 'auth') {
-            setScreen('auth');
-        }
-    }, [loading, user, screen]);
-
-    useEffect(() => {
         let unsubData: (() => void) | null = null;
 
-        console.log("App useEffect started");
-
-        const timeoutId = setTimeout(() => {
-            console.error("Firebase connection timeout - showing auth screen");
-            setLoading(false);
-            setScreen('auth');
-        }, 2000);
-
-        const fallbackTimeout = setTimeout(() => {
-            console.warn("Using demo mode - Firebase not available");
-            setUser({
-                uid: 'demo',
-                displayName: 'لاعب تجريبي',
-                coins: 1500,
-                purchasedSkins: ['k1', 't2'],
-                activeCardSkinId: 'k1',
-                activeTableSkinId: 't2',
-                stats: { wins: 0, losses: 0, totalGames: 0 }
-            });
-            setScreen('lobby');
-            setLoading(false);
-        }, 4000);
-
-        if (!firebaseReady || !auth || !db) {
-            setLoading(false);
-            setScreen('auth');
-            return;
-        }
-
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            clearTimeout(timeoutId);
-            clearTimeout(fallbackTimeout);
             if (unsubData) { unsubData(); unsubData = null; }
 
             if (firebaseUser) {
@@ -87,7 +31,6 @@ function App() {
                             setUser(docSnap.data());
                             setScreen('lobby');
                         } else {
-                            // User authenticated but no document yet
                             setScreen('auth');
                         }
                         setLoading(false);
@@ -104,16 +47,12 @@ function App() {
                 setLoading(false);
             }
         }, (error) => {
-            clearTimeout(timeoutId);
-            clearTimeout(fallbackTimeout);
             console.error("Auth state change error:", error);
             setLoading(false);
             setScreen('auth');
         });
 
         return () => {
-            clearTimeout(timeoutId);
-            clearTimeout(fallbackTimeout);
             unsubscribe();
             if (unsubData) unsubData();
         };
@@ -124,62 +63,6 @@ function App() {
             <div className="app-loading">
                 <div className="loader"></div>
                 <span>جاري تحميل عالم البصرة...</span>
-                <small style={{ fontSize: '12px', opacity: 0.7, marginTop: '10px' }}>
-                    الحالة: {screen} | المستخدم: {user ? 'موجود' : 'غير موجود'}
-                </small>
-                <button 
-                    className="demo-mode-btn"
-                    onClick={() => {
-                        console.log("Demo mode button clicked");
-                        setUser({
-                            uid: 'demo',
-                            displayName: 'لاعب تجريبي',
-                            coins: 1500,
-                            purchasedSkins: ['k1', 't2'],
-                            activeCardSkinId: 'k1',
-                            activeTableSkinId: 't2',
-                            stats: { wins: 0, losses: 0, totalGames: 0 }
-                        });
-                        setScreen('lobby');
-                        setLoading(false);
-                    }}
-                >
-                    دخول تجريبي (بدون انترنت)
-                </button>
-            </div>
-        );
-    }
-
-    if (!firebaseReady && !user) {
-        return (
-            <div className="app-loading">
-                <span>تعذّر تشغيل Firebase</span>
-                <small style={{ fontSize: '12px', opacity: 0.85, marginTop: '10px', maxWidth: 420, textAlign: 'center' }}>
-                    السبب: مفتاح API غير صالح أو إعدادات Firebase غير موجودة.
-                    {' '}
-                    تأكد من ضبط متغيرات البيئة VITE_FIREBASE_* في ملف .env ثم أعد تشغيل المشروع.
-                </small>
-                <small style={{ fontSize: '11px', opacity: 0.7, marginTop: '10px', maxWidth: 520, textAlign: 'center' }}>
-                    {String((firebaseInitError as any)?.message || firebaseInitError || '')}
-                </small>
-                <button
-                    className="demo-mode-btn"
-                    onClick={() => {
-                        setUser({
-                            uid: 'demo',
-                            displayName: 'لاعب تجريبي',
-                            coins: 1500,
-                            purchasedSkins: ['k1', 't2'],
-                            activeCardSkinId: 'k1',
-                            activeTableSkinId: 't2',
-                            stats: { wins: 0, losses: 0, totalGames: 0 }
-                        });
-                        setScreen('lobby');
-                        setLoading(false);
-                    }}
-                >
-                    دخول تجريبي (بدون Firebase)
-                </button>
             </div>
         );
     }
