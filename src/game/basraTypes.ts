@@ -24,6 +24,7 @@ export interface PlayerState {
     basraPoints: number;
     isHuman: boolean;
     team: 0 | 1;
+    activeSkinId?: string;
 }
 
 export type GamePhase = 'idle' | 'playing' | 'aiThinking' | 'roundEnd' | 'roundEndScored' | 'gameEnd';
@@ -44,7 +45,19 @@ export interface GameState {
     activeSkin?: {
         cardBack?: string;
         tableBg?: string;
-    }
+    };
+    turnDeadline?: number; // Server timestamp (ms)
+}
+
+export interface GameRoom {
+    id: string;
+    status: 'waiting' | 'playing' | 'finished';
+    adminId: string;
+    playerCount: number;
+    playerUids: string[];
+    players: PlayerState[];
+    gameState: GameState;
+    createdAt: string;
 }
 
 // ── Helpers ───────────────────────────────────────────

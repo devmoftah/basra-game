@@ -59,6 +59,9 @@ function App() {
                     onOpenStore={() => setScreen('store')}
                     userCoins={user.coins}
                     userName={user.displayName}
+                    purchasedSkins={user.purchasedSkins}
+                    activeCardSkinId={user.activeCardSkinId}
+                    activeTableSkinId={user.activeTableSkinId}
                 />
             )}
 

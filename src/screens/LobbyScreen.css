@@ -584,3 +584,125 @@
 .nav-item:hover {
     color: #bbb;
 }
+
+/* ── BAG / INVENTORY ────────────────────────────── */
+.bag-count {
+    font-size: 11px;
+    font-weight: 500;
+    color: #888;
+}
+
+.bag-container {
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 18px;
+    padding: 16px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.empty-bag {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    text-align: center;
+    color: #888;
+    cursor: pointer;
+}
+
+.empty-bag-btn {
+    background: var(--gold-dark);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.bag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 12px;
+}
+
+.bag-item {
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.bag-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.bag-item.active {
+    border-color: var(--gold);
+    background: #fffdf5;
+}
+
+.bag-item-preview {
+    height: 70px;
+    background: #f8f8f8;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.mini-card {
+    width: 40px;
+    height: 56px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mini-table {
+    width: 80%;
+    height: 40px;
+    border-radius: 4px;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.bag-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.bag-item-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bag-item-status {
+    font-size: 10px;
+    color: #999;
+    font-weight: 600;
+}
+
+.active .bag-item-status {
+    color: #b8860b;
+}

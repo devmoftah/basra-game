@@ -7,14 +7,44 @@ interface Props {
     onOpenStore: () => void;
     userCoins: number;
     userName: string;
+    purchasedSkins?: string[];
+    activeCardSkinId?: string;
+    activeTableSkinId?: string;
 }
 
-export default function LobbyScreen({ onStartGame, onOpenStore, userCoins, userName }: Props) {
+import { STORE_ITEMS } from '../data/storeItems';
+import { doc, updateDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+
+export default function LobbyScreen({
+    onStartGame,
+    onOpenStore,
+    userCoins,
+    userName,
+    purchasedSkins = [],
+    activeCardSkinId,
+    activeTableSkinId
+}: Props) {
     const handleLogout = () => {
         if (window.confirm('هل تريد تسجيل الخروج؟')) {
             signOut(auth);
         }
     };
+
+    const handleEquip = async (itemId: string, category: 'cards' | 'tables') => {
+        if (!auth.currentUser) return;
+        const userRef = doc(db, 'users', auth.currentUser.uid);
+        try {
+            const updateData: any = {};
+            if (category === 'cards') updateData.activeCardSkinId = itemId;
+            if (category === 'tables') updateData.activeTableSkinId = itemId;
+            await updateDoc(userRef, updateData);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const mySkins = STORE_ITEMS.filter(item => purchasedSkins.includes(item.id));
     return (
         <div className="lobby-root">
 
@@ -111,10 +141,6 @@ export default function LobbyScreen({ onStartGame, onOpenStore, userCoins, userN
                 </section>
 
                 {/* ── Coming Soon Games ──────────── */}
-                <h3 className="section-title">
-                    ألعاب أخرى
-                    <span className="coming-soon-badge">قريباً</span>
-                </h3>
                 <div className="games-grid">
                     {COMING_SOON.map(g => (
                         <div key={g.name} className="game-tile coming-soon-tile">
@@ -125,6 +151,46 @@ export default function LobbyScreen({ onStartGame, onOpenStore, userCoins, userN
                     ))}
                 </div>
 
+                {/* ── BAG / INVENTORY ──────────── */}
+                <h3 className="section-title">
+                    حقيبتي (الخزانة)
+                    <span className="bag-count">{mySkins.length} عناصر</span>
+                </h3>
+                <div className="bag-container">
+                    {mySkins.length === 0 ? (
+                        <div className="empty-bag" onClick={onOpenStore}>
+                            <p>حقيبتك فارغة حالياً</p>
+                            <button className="empty-bag-btn">اذهب للمتجر</button>
+                        </div>
+                    ) : (
+                        <div className="bag-grid">
+                            {mySkins.map(skin => {
+                                const isActive = skin.id === activeCardSkinId || skin.id === activeTableSkinId;
+                                return (
+                                    <div
+                                        key={skin.id}
+                                        className={`bag-item ${isActive ? 'active' : ''}`}
+                                        onClick={() => !isActive && handleEquip(skin.id, skin.category as any)}
+                                    >
+                                        <div className="bag-item-preview">
+                                            {skin.category === 'cards' ? (
+                                                <div className="mini-card" style={{ backgroundColor: skin.colors?.[0], border: `2px solid ${skin.colors?.[1]}` }}>
+                                                    {skin.image.endsWith('.png') ? <img src={skin.image} alt="" /> : <span>{skin.name.charAt(0)}</span>}
+                                                </div>
+                                            ) : (
+                                                <div className="mini-table" style={{ background: `radial-gradient(circle, ${skin.colors?.[0]} 0%, ${skin.colors?.[1]} 100%)` }} />
+                                            )}
+                                        </div>
+                                        <div className="bag-item-info">
+                                            <span className="bag-item-name">{skin.name}</span>
+                                            <span className="bag-item-status">{isActive ? 'مفعل' : 'تجهيز'}</span>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* ── Bottom Nav (3 items) ────────── */}

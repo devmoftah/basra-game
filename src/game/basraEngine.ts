@@ -161,13 +161,13 @@ export function calcRoundScores(players: PlayerState[]): [number, number] {
     return [s0, s1];
 }
 
-export function createInitialState(): GameState {
+export function createInitialState(humanSkinId?: string): GameState {
     return {
         deck: [], tableCards: [], players: [
-            { id: 0, name: 'أنت', hand: [], captured: [], basraPoints: 0, isHuman: true, team: 0 },
-            { id: 1, name: 'Aaak22', hand: [], captured: [], basraPoints: 0, isHuman: false, team: 1 },
-            { id: 2, name: 'شريك', hand: [], captured: [], basraPoints: 0, isHuman: false, team: 0 },
-            { id: 3, name: 'هلالي', hand: [], captured: [], basraPoints: 0, isHuman: false, team: 1 },
+            { id: 0, name: 'أنت', hand: [], captured: [], basraPoints: 0, isHuman: true, team: 0, activeSkinId: humanSkinId || 'k1' },
+            { id: 1, name: 'Aaak22', hand: [], captured: [], basraPoints: 0, isHuman: false, team: 1, activeSkinId: 'k4' }, // الاتحاد
+            { id: 2, name: 'شريك', hand: [], captured: [], basraPoints: 0, isHuman: false, team: 0, activeSkinId: 'k3' }, // الأهلي طرابلس
+            { id: 3, name: 'هلالي', hand: [], captured: [], basraPoints: 0, isHuman: false, team: 1, activeSkinId: 'k6' }, // النصر
         ],
         currentPlayer: 0, totalScores: [0, 0], consecutiveZeros: [0, 0],
         phase: 'idle', lastCapturePlayer: null, winner: null,

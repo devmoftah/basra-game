@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import {
     GameState, Card, CaptureOption,
-    SUIT_SYMBOL, SUIT_COLOR, cardDisplay, Suit,
+    SUIT_SYMBOL, SUIT_COLOR, cardDisplay, Suit, GameRoom,
 } from '../game/basraTypes';
 import {
-    createInitialState, dealNewRound, applyMove, processScore, findCaptures,
+    dealNewRound, applyMove, processScore, findCaptures,
 } from '../game/basraEngine';
-import { aiChooseMove } from '../game/basraAI';
 import { STORE_ITEMS } from '../data/storeItems';
+import { db, auth } from '../firebase';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { findOrCreateRoom, startGameInRoom } from '../game/multiplayerService';
 import './GameScreen.css';
 
 interface Props {
@@ -23,69 +25,103 @@ interface PendingMove {
 }
 
 export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSkinId }: Props) {
-    const cardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId);
+    const defaultSkin = STORE_ITEMS.find(s => s.id === 'k1');
+    const [gs, setGs] = useState<GameState | null>(null);
+    const [room, setRoom] = useState<GameRoom | null>(null);
+    const [loadingRoom, setLoadingRoom] = useState(true);
+    const [turnTimer, setTurnTimer] = useState(7);
     const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId);
-    const [gs, setGs] = useState<GameState>(() => createInitialState());
+    const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
+
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
     const [validCapture, setValidCapture] = useState<CaptureOption | null>(null);
     const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set());
     const [countdown, setCountdown] = useState<number>(0);
-
-    // New state to show the card being played before it's processed
     const [previewMove, setPreviewMove] = useState<PendingMove | null>(null);
 
-    const aiTimerRef = useRef<any>(null);
-    const isScoringInProgress = useRef(false);
+    const isHost = room?.adminId === auth.currentUser?.uid;
     const isProcessingMove = useRef(false);
+    const isScoringInProgress = useRef(false);
 
-    // Initial deal
-    useEffect(() => { setGs(prev => dealNewRound(prev)); }, []);
+    // Join Room logic
+    useEffect(() => {
+        let unsub: any;
+        const join = async () => {
+            try {
+                const rid = await findOrCreateRoom(auth.currentUser?.displayName || 'لاعب', activeCardSkinId || 'k1');
+                unsub = onSnapshot(doc(db, 'rooms', rid), (s) => {
+                    const data = s.data() as GameRoom;
+                    if (data) {
+                        setRoom(data);
+                        setGs(data.gameState);
+                        setLoadingRoom(false);
+                    }
+                });
+            } catch (err) {
+                console.error(err);
+                onExitGame();
+            }
+        };
+        join();
+        return () => unsub && unsub();
+    }, []);
+
+    // 7s Timer Logic
+    useEffect(() => {
+        if (!gs || room?.status !== 'playing' || gs.phase !== 'playing') return;
+
+        const timer = setInterval(() => {
+            const now = Date.now();
+            if (gs.turnDeadline) {
+                const diff = Math.max(0, Math.ceil((gs.turnDeadline - now) / 1000));
+                setTurnTimer(diff);
+
+                if (diff === 0 && !isProcessingMove.current) {
+                    handleTimeout();
+                }
+            }
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, [gs?.currentPlayer, gs?.turnDeadline, room?.status]);
+
+    const handleTimeout = async () => {
+        if (!gs || !room) return;
+        const myIndex = gs.players.findIndex(p => p.isHuman && p.name === auth.currentUser?.displayName);
+        const isMyTurn = gs.currentPlayer === myIndex;
+
+        if (isMyTurn || (isHost && !gs.players[gs.currentPlayer].isHuman)) {
+            const p = gs.players[gs.currentPlayer];
+            if (!p.hand.length) return;
+            const randomCard = p.hand[Math.floor(Math.random() * p.hand.length)];
+            const captures = findCaptures(randomCard, gs.tableCards);
+            const bestCap = captures.length > 0 ? captures[0] : null;
+
+            await performMoveLocal(randomCard, bestCap);
+        }
+    };
 
     // Flash message clear
     useEffect(() => {
-        if (!gs.flashMessage) return;
-        const t = setTimeout(() => setGs(p => ({ ...p, flashMessage: null })), 2300);
+        if (!gs?.flashMessage) return;
+        const t = setTimeout(() => {
+            if (room && isHost) {
+                updateDoc(doc(db, 'rooms', room.id), { 'gameState.flashMessage': null });
+            }
+        }, 2300);
         return () => clearTimeout(t);
-    }, [gs.flashMessage]);
+    }, [gs?.flashMessage]);
 
-    // AI Turn Logic with PREVIEW
+    // Handle Score and Rounds (Only Host processes state changes)
     useEffect(() => {
-        if (gs.phase !== 'playing' || isProcessingMove.current) return;
-        const curP = gs.players[gs.currentPlayer];
-        if (curP.isHuman) return;
+        if (!isHost || !room || !gs) return;
 
-        if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
-
-        aiTimerRef.current = setTimeout(() => {
-            const move = aiChooseMove(gs.currentPlayer, gs);
-
-            // 1. Show preview first
-            setPreviewMove({
-                card: move.card,
-                playerIndex: gs.currentPlayer,
-                capture: move.capture
-            });
-
-            // 2. Wait 0.5s then apply
-            setTimeout(() => {
-                setGs(prev => applyMove(prev, prev.currentPlayer, move.card, move.capture));
-                setPreviewMove(null);
-            }, 500);
-
-        }, 1000);
-
-        return () => clearTimeout(aiTimerRef.current);
-    }, [gs.currentPlayer, gs.phase]);
-
-    // Round End Handling
-    useEffect(() => {
         if (gs.phase === 'roundEnd' && !isScoringInProgress.current) {
             isScoringInProgress.current = true;
-            setGs(prev => processScore(prev));
+            const nextGs = processScore(gs);
+            updateDoc(doc(db, 'rooms', room.id), { gameState: nextGs });
         }
-    }, [gs.phase]);
 
-    useEffect(() => {
         if (gs.phase === 'roundEndScored') {
             setCountdown(6);
             const timer = setInterval(() => {
@@ -93,7 +129,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     if (c <= 1) {
                         clearInterval(timer);
                         isScoringInProgress.current = false;
-                        setGs(prev => dealNewRound(prev));
+                        const dealtGs = dealNewRound(gs);
+                        dealtGs.turnDeadline = Date.now() + 8000;
+                        updateDoc(doc(db, 'rooms', room.id), { gameState: dealtGs });
                         return 0;
                     }
                     return c - 1;
@@ -101,14 +139,39 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
             }, 1000);
             return () => clearInterval(timer);
         }
-    }, [gs.phase === 'roundEndScored']);
+    }, [gs?.phase, isHost]);
+
+    const performMoveLocal = async (card: Card, capture: CaptureOption | null) => {
+        if (!gs || !room || isProcessingMove.current) return;
+        isProcessingMove.current = true;
+
+        setPreviewMove({ card, playerIndex: gs.currentPlayer, capture });
+
+        setTimeout(async () => {
+            const nextGs = applyMove(gs, gs.currentPlayer, card, capture);
+            nextGs.turnDeadline = Date.now() + 8000;
+
+            await updateDoc(doc(db, 'rooms', room.id), {
+                gameState: nextGs
+            });
+
+            setPreviewMove(null);
+            setSelectedCard(null);
+            setValidCapture(null);
+            setHighlightIds(new Set());
+            isProcessingMove.current = false;
+        }, 600);
+    };
 
     const handleSelect = (e: React.MouseEvent, card: Card) => {
         e.stopPropagation();
-        if (gs.phase !== 'playing' || gs.currentPlayer !== 0 || previewMove) return;
+        if (!gs || gs.phase !== 'playing' || previewMove) return;
+
+        const myIndex = gs.players.findIndex(p => p.isHuman && p.name === auth.currentUser?.displayName);
+        if (gs.currentPlayer !== myIndex) return;
 
         if (selectedCard?.id === card.id) {
-            handlePlay();
+            performMoveLocal(selectedCard, validCapture);
             return;
         }
         setSelectedCard(card);
@@ -121,24 +184,50 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         }
     };
 
-    const handlePlay = () => {
-        if (!selectedCard || gs.phase !== 'playing' || previewMove) return;
+    if (loadingRoom || !gs || !room) {
+        return <div className="app-loading"><div className="loader" /><span>جاري التحميل...</span></div>;
+    }
 
-        const moveCard = selectedCard;
-        const moveCap = validCapture;
+    if (room.status === 'waiting') {
+        const slots = [0, 1, 2, 3];
+        return (
+            <div className="waiting-room">
+                <div className="wr-box">
+                    <h2 className="wr-title">طاولة رقم {room.id.slice(0, 4)}</h2>
+                    <p className="wr-subtitle">في انتظار اللاعبين...</p>
+                    <div className="wr-players">
+                        {slots.map((i) => {
+                            const p = room.players[i];
+                            return (
+                                <div key={i} className="wr-p-slot">
+                                    {p?.isHuman ? (
+                                        <>
+                                            <div className="wr-avatar"><img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${p.name}`} alt="" /></div>
+                                            <span className="wr-name">{p.name} {p.id === 0 && '👑'}</span>
+                                        </>
+                                    ) : (
+                                        <div className="wr-placeholder">فارغ</div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <div className="wr-actions">
+                        {isHost ? (
+                            <button className="wr-btn" onClick={() => startGameInRoom(room.id)}>ابدأ اللعبة بالبوتات</button>
+                        ) : (
+                            <div className="wr-msg">في انتظار الآدمن لبدء اللعبة...</div>
+                        )}
+                        <button className="gtb-btn exit-btn" onClick={onExitGame}>خروج</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
-        // Process human move with a tiny delay to show the card too
-        setPreviewMove({ card: moveCard, playerIndex: 0, capture: moveCap });
-
-        setTimeout(() => {
-            setGs(prev => applyMove(prev, 0, moveCard, moveCap));
-            setPreviewMove(null);
-            setSelectedCard(null); setValidCapture(null); setHighlightIds(new Set());
-        }, 500);
-    };
-
-    const human = gs.players[0];
-    const isMyTurn = gs.currentPlayer === 0 && gs.phase === 'playing' && !previewMove;
+    const myIndex = gs.players.findIndex(p => p.isHuman && p.name === auth.currentUser?.displayName);
+    const human = gs.players[myIndex] || gs.players[0];
+    const isActuallyMyTurn = gs.currentPlayer === myIndex && gs.phase === 'playing' && !previewMove;
 
     return (
         <div className="game-root" onClick={() => {
@@ -166,17 +255,17 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     <div className="gsb-sub">هم | نحن (الهدف 250)</div>
                 </div>
                 <div className="gtb-right">
-                    <div className={`turn-ind ${isMyTurn ? 'my-turn' : ''}`}>
+                    <div className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}>
                         {previewMove ? `● يلعب: ${gs.players[previewMove.playerIndex].name}` :
-                            (isMyTurn ? '● دورك' : `● ${gs.players[gs.currentPlayer].name}`)}
+                            (isActuallyMyTurn ? `● دورك (${turnTimer}ث)` : `● ${gs.players[gs.currentPlayer].name} (${turnTimer}ث)`)}
                     </div>
                 </div>
             </header>
 
             <main className="game-table-area">
-                <Opponent player={gs.players[2]} pos="top" active={gs.currentPlayer === 2} cardSkin={cardSkin} />
-                <Opponent player={gs.players[1]} pos="left" active={gs.currentPlayer === 1} cardSkin={cardSkin} />
-                <Opponent player={gs.players[3]} pos="right" active={gs.currentPlayer === 3} cardSkin={cardSkin} />
+                <Opponent player={gs.players[(myIndex + 2) % 4]} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} />
+                <Opponent player={gs.players[(myIndex + 1) % 4]} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
+                <Opponent player={gs.players[(myIndex + 3) % 4]} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
 
                 <div className="sadu-table" style={{
                     background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined
@@ -187,17 +276,16 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         }}>
                             {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
                             {gs.tableCards.map((c, i) => (
-                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-24px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} cardSkin={cardSkin} />
+                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-24px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
                             ))}
 
-                            {/* THE PREVIEW CARD: Shown when someone makes a move */}
                             {previewMove && (
                                 <div className="preview-layer">
                                     <CardComp
                                         card={previewMove.card}
                                         size="large"
                                         hl={true}
-                                        cardSkin={cardSkin}
+                                        cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
                                         style={{
                                             boxShadow: '0 0 30px rgba(255,215,0,0.8)',
                                             animation: 'cardEntry 0.3s ease-out'
@@ -215,8 +303,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     {gs.deck.length > 0 && (
                         <CardComp
                             card={{ id: 'deck', suit: 'spades', value: 0 }}
-                            style={{ isBack: true, transform: 'scale(0.5)' }}
-                            cardSkin={cardSkin}
+                            style={{ isBack: true, transform: 'scale(0.8)' }}
+                            cardSkin={myCardSkin}
+                            size="small"
                         />
                     )}
                     <span>{gs.deck.length}</span>
@@ -229,7 +318,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     {human.hand.map((c, i) => {
                         const rot = (i - (human.hand.length - 1) / 2) * 7;
                         const isSel = selectedCard?.id === c.id;
-                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={cardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
+                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={myCardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
                     })}
                 </div>
             </div>
@@ -243,7 +332,9 @@ function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
     const v = cardDisplay(card.value);
     const isBack = style?.isBack;
 
-    const isImageSkin = cardSkin?.image?.endsWith('.png');
+    const skin = cardSkin || STORE_ITEMS.find(s => s.id === 'k1');
+    const isImageSkin = skin?.image?.endsWith('.png');
+    const isSmall = size === 'small';
 
     return (
         <div
@@ -251,9 +342,9 @@ function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
             style={{
                 color: SUIT_COLOR[card.suit as Suit],
                 ...style,
-                backgroundColor: isBack ? (cardSkin?.colors?.[0] || '#222') : '#fff',
-                borderColor: isBack ? (cardSkin?.colors?.[1] || '#444') : '#ddd',
-                backgroundImage: isBack && isImageSkin ? `url(${cardSkin.image})` : 'none',
+                backgroundColor: isBack ? (skin?.colors?.[0] || '#222') : '#fff',
+                borderColor: isBack ? (skin?.colors?.[1] || '#444') : '#ddd',
+                backgroundImage: isBack && isImageSkin ? `url(${skin.image})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
             }}
@@ -267,15 +358,23 @@ function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
                 </>
             )}
             {isBack && !isImageSkin && (
-                <div className="card-back-pattern" style={{ border: `10px solid ${cardSkin?.colors?.[1] || '#444'}`, height: '100%', width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div className="card-back-logo" style={{ fontSize: '2rem', opacity: 0.3 }}>{cardSkin?.name?.charAt(0) || 'B'}</div>
+                <div className="card-back-pattern" style={{
+                    border: `${isSmall ? '4px' : '10px'} solid ${skin?.colors?.[1] || '#444'}`,
+                    height: '100%', width: '100%', boxSizing: 'border-box',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div className="card-back-logo" style={{
+                        fontSize: isSmall ? '0.8rem' : '2rem',
+                        opacity: 0.3
+                    }}>{skin?.name?.charAt(0) || 'B'}</div>
                 </div>
             )}
         </div>
     );
 }
 
-function Opponent({ player, pos, active, cardSkin }: any) {
+function Opponent({ player, pos, active }: any) {
+    const skin = STORE_ITEMS.find(s => s.id === player.activeSkinId);
     return (
         <div className={`player-slot ps-${pos} ${active ? 'ps-active' : ''}`}>
             <div className="ps-avatar"><img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt="" />{active && <div className="ps-ring" />}</div>
@@ -286,7 +385,8 @@ function Opponent({ player, pos, active, cardSkin }: any) {
                         key={i}
                         card={{ id: `back-${i}`, suit: 'spades', value: 0 }}
                         style={{ isBack: true, marginLeft: i > 0 ? '-45px' : '0' }}
-                        cardSkin={cardSkin}
+                        cardSkin={skin}
+                        size="small"
                     />
                 ))}
             </div>

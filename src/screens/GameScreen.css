@@ -602,3 +602,125 @@
     color: var(--gold-dark);
     font-size: 18px;
 }
+
+/* ── WAITING ROOM ────────────────────────────── */
+.waiting-room {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: radial-gradient(circle at center, #2d6b4a 0%, #1a3e30 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.wr-box {
+    background: white;
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    padding: 30px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.wr-title {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text-dark);
+    margin: 0;
+}
+
+.wr-subtitle {
+    font-size: 14px;
+    color: #888;
+    margin: 0;
+}
+
+.wr-players {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin: 10px 0;
+}
+
+.wr-p-slot {
+    background: #f8f8f8;
+    border-radius: 16px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #eee;
+}
+
+.wr-avatar {
+    width: 50px;
+    height: 50px;
+    background: #eee;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid var(--gold);
+}
+
+.wr-avatar img {
+    width: 100%;
+    height: 100%;
+}
+
+.wr-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.wr-placeholder {
+    font-size: 11px;
+    color: #bbb;
+    height: 70px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.wr-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.wr-btn {
+    background: var(--panel-dark);
+    color: var(--gold-light);
+    border: 2px solid var(--gold);
+    padding: 14px;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.wr-btn:hover {
+    background: var(--gold-dark);
+    color: white;
+}
+
+.wr-msg {
+    font-size: 14px;
+    color: var(--text-mid);
+    padding: 10px;
+    background: #fff9ee;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.exit-btn {
+    margin-top: 10px;
+    opacity: 0.8;
+}
