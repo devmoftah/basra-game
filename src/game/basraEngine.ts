@@ -261,14 +261,24 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
     } else {
         // Special rules for Jack and 7♦️
         if (card.value === 11) {
-            // Jack (الولد) - بصرة 50 فقط على ورقة واحدة
+            // Jack (الولد) - بصرة 50 فقط على ولد أو 7♦️ وحدهم
             if (tableCards.length === 1) {
-                // بصرة 50 نقطة
-                player.captured.push(card, ...tableCards);
-                player.basraPoints += 50;
-                flashMessage = `بصرة الولد! +50 نقطة 🎯`;
-                tableCards = [];
-                lastCapturePlayer = playerIndex;
+                const targetCard = tableCards[0];
+                // Check if it's a Jack or 7♦️
+                if (targetCard.value === 11 || (targetCard.value === 7 && targetCard.suit === 'diamonds')) {
+                    // بصرة 50 نقطة
+                    player.captured.push(card, ...tableCards);
+                    player.basraPoints += 50;
+                    flashMessage = `بصرة الولد! +50 نقطة 🎯`;
+                    tableCards = [];
+                    lastCapturePlayer = playerIndex;
+                } else {
+                    // يقش الطاولة بدون نقاط
+                    player.captured.push(card, ...tableCards);
+                    flashMessage = `الولد يقش الطاولة! 🎯`;
+                    tableCards = [];
+                    lastCapturePlayer = playerIndex;
+                }
             } else {
                 // يقش الطاولة بدون نقاط
                 player.captured.push(card, ...tableCards);
