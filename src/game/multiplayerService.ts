@@ -39,7 +39,18 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
         // Join existing room
         const roomData = roomDoc.data() as GameRoom;
 
-        if (roomData.playerUids.includes(user.uid)) return roomDoc.id;
+        // Allow returning to same room if it's still waiting
+        if (roomData.playerUids.includes(user.uid)) {
+            if (roomData.status === 'waiting') {
+                // Find the player's existing seat and return the room
+                const existingPlayer = roomData.players.find(p => p.uid === user.uid);
+                if (existingPlayer) {
+                    return roomDoc.id; // Return to waiting room with existing seat
+                }
+            } else {
+                return roomDoc.id; // Already in this room (playing)
+            }
+        }
 
         const newPlayers = [...roomData.players];
         const nextSeat = roomData.playerCount;
