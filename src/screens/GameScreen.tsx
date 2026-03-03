@@ -96,10 +96,12 @@ export default function GameScreen({ onExitGame }: Props) {
         }
     }, [gs.phase === 'roundEndScored']);
 
-    const handleSelect = (card: Card) => {
+    const handleSelect = (e: React.MouseEvent, card: Card) => {
+        e.stopPropagation();
         if (gs.phase !== 'playing' || gs.currentPlayer !== 0 || previewMove) return;
+
         if (selectedCard?.id === card.id) {
-            setSelectedCard(null); setValidCapture(null); setHighlightIds(new Set());
+            handlePlay();
             return;
         }
         setSelectedCard(card);
@@ -132,7 +134,11 @@ export default function GameScreen({ onExitGame }: Props) {
     const isMyTurn = gs.currentPlayer === 0 && gs.phase === 'playing' && !previewMove;
 
     return (
-        <div className="game-root">
+        <div className="game-root" onClick={() => {
+            setSelectedCard(null);
+            setValidCapture(null);
+            setHighlightIds(new Set());
+        }}>
             {gs.flashMessage && <div className="flash-msg">{gs.flashMessage}</div>}
 
             {(gs.phase === 'roundEndScored' || gs.phase === 'gameEnd') && (
@@ -212,19 +218,11 @@ export default function GameScreen({ onExitGame }: Props) {
                     {human.hand.map((c, i) => {
                         const rot = (i - (human.hand.length - 1) / 2) * 7;
                         const isSel = selectedCard?.id === c.id;
-                        return <CardComp key={c.id} card={c} size="large" onClick={() => handleSelect(c)} hl={isSel} activeSkin={gs.activeSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
+                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} activeSkin={gs.activeSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
                     })}
                 </div>
             </div>
 
-            <footer className="game-action-bar">
-                <div className="gab-hint">
-                    {previewMove ? 'جاري اللعب...' : (isMyTurn ? (selectedCard ? (validCapture ? 'أكل!' : 'رمي') : 'اختر ورقة') : 'انتظر...')}
-                </div>
-                <button className={`gab-btn ${isMyTurn && selectedCard ? 'active' : ''}`} disabled={!isMyTurn || !selectedCard || !!previewMove} onClick={handlePlay}>
-                    {validCapture ? '🤌 أكل' : '▶ رمي'}
-                </button>
-            </footer>
         </div>
     );
 }

@@ -166,6 +166,7 @@
     border: 2px solid rgba(200, 163, 89, .4);
     display: flex;
     flex-direction: column;
+    max-width: 100%;
 }
 
 .basra-card:hover {
@@ -220,10 +221,19 @@
 /* Green felt */
 .basra-felt-center {
     flex: 1;
-    min-height: 160px;
+    min-height: 120px;
     background: radial-gradient(ellipse at 50% 50%, #3e8060 0%, #1e5038 55%, #143825 100%);
     position: relative;
     overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 400px) {
+    .basra-felt-center {
+        min-height: 100px;
+    }
 }
 
 .basra-felt-center::before {
@@ -236,18 +246,21 @@
 
 /* Golden center badge */
 .basra-center-badge {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
     background: linear-gradient(135deg, #9c7210 0%, #e8ba1e 40%, #f5d84a 60%, #d4a017 100%);
     border-radius: 30px;
-    padding: 10px 30px;
+    padding: 8px 24px;
     box-shadow:
         0 4px 14px rgba(0, 0, 0, .55),
         inset 0 1px 1px rgba(255, 255, 255, .55),
         0 0 0 2px rgba(212, 160, 23, .35);
     z-index: 10;
+}
+
+@media (max-width: 400px) {
+    .basra-center-badge {
+        padding: 6px 16px;
+        transform: scale(0.9);
+    }
 }
 
 .bcb-text {
@@ -290,34 +303,45 @@
 }
 
 /* 4-corner positions */
+@media (max-width: 400px) {
+    .bc {
+        width: 36px;
+        height: 52px;
+    }
+
+    .bc-suit {
+        font-size: 16px;
+    }
+
+    .bc-val {
+        font-size: 10px;
+    }
+}
+
 .bc-left {
     transform: rotate(-14deg);
-    left: 14%;
-    top: 50%;
-    margin-top: -31px;
+    position: absolute;
+    left: 10%;
 }
 
 .bc-right {
     transform: rotate(13deg);
-    right: 14%;
-    top: 50%;
-    margin-top: -31px;
+    position: absolute;
+    right: 10%;
 }
 
 .bc-far-left {
     transform: rotate(-26deg);
-    left: 3%;
-    top: 50%;
-    margin-top: -31px;
-    opacity: .82;
+    position: absolute;
+    left: -2%;
+    opacity: 0.6;
 }
 
 .bc-far-right {
     transform: rotate(24deg);
-    right: 3%;
-    top: 50%;
-    margin-top: -31px;
-    opacity: .82;
+    position: absolute;
+    right: -2%;
+    opacity: 0.6;
 }
 
 /* Golden play button flush at bottom of card */
