@@ -42,16 +42,25 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const isHost = room?.adminId === auth.currentUser?.uid;
     const isProcessingMove = useRef(false);
     const isScoringInProgress = useRef(false);
+    const roomIdRef = useRef<string | null>(null);
+
+    // Update room ID ref when room changes
+    useEffect(() => {
+        if (room) {
+            roomIdRef.current = room.id;
+        }
+    }, [room]);
 
     // Handle immediate bot replacement on exit
     useEffect(() => {
         return () => {
             // When component unmounts (player exits), replace with bot immediately
-            if (room && auth.currentUser) {
-                replacePlayerWithBot(room.id, auth.currentUser.uid);
+            if (roomIdRef.current && auth.currentUser) {
+                console.log('🤖 Replacing player with bot on exit');
+                replacePlayerWithBot(roomIdRef.current, auth.currentUser.uid);
             }
         };
-    }, [room]);
+    }, []); // Empty dependency array - only run on unmount
 
     // Join Room logic
     useEffect(() => {
