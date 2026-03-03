@@ -44,6 +44,7 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
 
         const newPlayer: PlayerState = {
             id: nextSeat,
+            uid: user.uid,
             name: userName,
             hand: [],
             captured: [],
@@ -66,9 +67,9 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
     } else {
         // Create new room
         const initialState = createInitialState(skinId);
-        // Initially, only the host is in the room. Others are placeholders or Bots will be filled on start.
         const hostPlayer: PlayerState = {
             id: 0,
+            uid: user.uid,
             name: userName,
             hand: [],
             captured: [],
@@ -99,7 +100,8 @@ export async function startGameInRoom(roomId: string) {
     const roomRef = doc(db, 'rooms', roomId);
     const s = await getDocs(query(collection(db, 'rooms'), where('__name__', '==', roomId)));
     if (s.empty) return;
-    const roomData = s.docs[0].data() as GameRoom;
+    const roomSnap = s.docs[0];
+    const roomData = roomSnap.data() as GameRoom;
 
     // Deal cards using the engine
     let nextGs = dealNewRound(roomData.gameState);
@@ -107,6 +109,7 @@ export async function startGameInRoom(roomId: string) {
 
     await updateDoc(roomRef, {
         status: 'playing',
+        players: nextGs.players,
         gameState: nextGs
     });
 }

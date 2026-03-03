@@ -18,6 +18,7 @@ export interface CaptureOption {
 
 export interface PlayerState {
     id: number;
+    uid?: string; // Firebase UID
     name: string;
     hand: Card[];
     captured: Card[];

@@ -180,11 +180,13 @@ export function createInitialState(humanSkinId?: string): GameState {
 
 export function dealNewRound(state: GameState): GameState {
     const deck = shuffle(createDeck());
+    // In Basra, the first round of a game puts 4 cards on the table
+    const tableCards = deck.splice(0, 4);
     const players = state.players.map(p => ({
         ...p, hand: deck.splice(0, 4), captured: [], basraPoints: 0,
     }));
     return {
-        ...state, deck, tableCards: [], players,
+        ...state, deck, tableCards, players,
         currentPlayer: 0, phase: 'playing', lastCapturePlayer: null, flashMessage: null,
     };
 }
