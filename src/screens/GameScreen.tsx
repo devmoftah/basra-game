@@ -28,7 +28,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const defaultSkin = STORE_ITEMS.find(s => s.id === 'k1');
     const [gs, setGs] = useState<GameState | null>(null);
     const [room, setRoom] = useState<GameRoom | null>(null);
-    const [loadingRoom] = useState(true);
+    const [loadingRoom, setLoadingRoom] = useState(true);
     const [turnTimer, setTurnTimer] = useState(7);
     const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId);
     const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
