@@ -324,11 +324,9 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
                 lastCapturePlayer = playerIndex;
             }
         } else if (card.value === 7 && card.suit === 'diamonds') {
-            // 7♦️ (الكوماندو) - جوكر ياخد بنفس قيمة الرقم
-            // TODO: Add logic to let player choose which value to use
-            // For now, we'll implement basic logic
+            // 7♦️ (الكوماندو) - جوكر على ورقة واحدة، ولد على مجموعة
             if (tableCards.length === 1) {
-                // بصرة على ورقة واحدة - ياخد بنفس قيمة الورقة
+                // بصرة على ورقة واحدة - يعمل كجوكر
                 const targetCard = tableCards[0];
                 const points = calcPoints(targetCard);
                 player.captured.push(card, ...tableCards);
@@ -337,24 +335,11 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
                 tableCards = [];
                 lastCapturePlayer = playerIndex;
             } else {
-                // Check if there's a capture possibility (sum to some value)
-                const hasCapture = findCaptures(card, tableCards).length > 0;
-                if (hasCapture) {
-                    // TODO: Let player choose which capture to make
-                    // For now, just take first available capture
-                    const capture = findCaptures(card, tableCards)[0];
-                    player.captured.push(card, ...capture.cards);
-                    player.basraPoints += capture.basraPoints || 0;
-                    flashMessage = `الكوماندو بصرة! +${capture.basraPoints || 0} نقطة 💎`;
-                    tableCards = tableCards.filter(c => !capture.cards.find(x => x.id === c.id));
-                    lastCapturePlayer = playerIndex;
-                } else {
-                    // يقش الطاولة بدون نقاط
-                    player.captured.push(card, ...tableCards);
-                    flashMessage = `الكوماندو يقش الطاولة! 💎`;
-                    tableCards = [];
-                    lastCapturePlayer = playerIndex;
-                }
+                // مجموعة - يعمل كولد يقش الطاولة بدون نقاط
+                player.captured.push(card, ...tableCards);
+                flashMessage = `الكوماندو يقش الطاولة! 💎`;
+                tableCards = [];
+                lastCapturePlayer = playerIndex;
             }
         } else {
             tableCards = [...tableCards, card];

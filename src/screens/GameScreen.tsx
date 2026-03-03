@@ -125,7 +125,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 
                 // Set different deadlines based on player type
                 const currentPlayerObj = nextGs.players[nextGs.currentPlayer];
-                const deadline = currentPlayerObj?.isHuman ? 15000 : 3000; // 15s for human, 3s for bot
+                const deadline = currentPlayerObj?.isHuman ? 15000 : 1000; // 15s for human, 1s for bot
                 nextGs.turnDeadline = Date.now() + deadline;
                 
                 await updateDoc(doc(db, 'rooms', curRoom.id), { gameState: nextGs });
