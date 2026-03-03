@@ -10,7 +10,7 @@ import {
     limit
 } from 'firebase/firestore';
 import { GameRoom, PlayerState } from './basraTypes';
-import { createInitialState } from './basraEngine';
+import { createInitialState, dealNewRound } from './basraEngine';
 
 export async function findOrCreateRoom(userName: string, skinId: string): Promise<string> {
     const user = auth.currentUser;
@@ -97,8 +97,16 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
 
 export async function startGameInRoom(roomId: string) {
     const roomRef = doc(db, 'rooms', roomId);
+    const s = await getDocs(query(collection(db, 'rooms'), where('__name__', '==', roomId)));
+    if (s.empty) return;
+    const roomData = s.docs[0].data() as GameRoom;
+
+    // Deal cards using the engine
+    let nextGs = dealNewRound(roomData.gameState);
+    nextGs.turnDeadline = Date.now() + 8000;
+
     await updateDoc(roomRef, {
         status: 'playing',
-        'gameState.phase': 'playing'
+        gameState: nextGs
     });
 }
