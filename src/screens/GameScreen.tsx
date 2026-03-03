@@ -28,7 +28,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const defaultSkin = STORE_ITEMS.find(s => s.id === 'k1');
     const [gs, setGs] = useState<GameState | null>(null);
     const [room, setRoom] = useState<GameRoom | null>(null);
-    const [loadingRoom, setLoadingRoom] = useState(true);
+    const [loadingRoom] = useState(true);
     const [turnTimer, setTurnTimer] = useState(7);
     const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId);
     const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
@@ -52,11 +52,26 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 unsub = onSnapshot(doc(db, 'rooms', rid), (s) => {
                     const data = s.data() as GameRoom;
                     if (data) {
-                        // ✅ FIX: s.data() doesn't include the document ID,
-                        // so we must merge it manually to avoid room.id being undefined
-                        setRoom({ ...data, id: s.id });
-                        setGs(data.gameState);
-                        setLoadingRoom(false);
+                        // ✅ FIX: s.data() doesn't include the document ID, 
+                        // so we add it manually for the join/leave logic
+                        const roomWithId = { ...data, id: s.id };
+                        setRoom(roomWithId);
+                        setGs(roomWithId.gameState);
+
+                        // Handle room closure or player changes
+                        if (data.status === 'finished' && data.gameState.flashMessage?.includes('إغلاق الطاولة')) {
+                            setTimeout(() => onExitGame(), 3000);
+                        }
+
+                        // Show flash messages for player changes
+                        if (data.gameState.flashMessage?.includes('تم استبدال اللاعب')) {
+                            setTimeout(() => {
+                                setGs(prev => prev ? { ...prev, flashMessage: null } : null);
+                            }, 3000);
+                        }
+                    } else {
+                        // Room deleted
+                        onExitGame();
                     }
                 });
             } catch (err) {

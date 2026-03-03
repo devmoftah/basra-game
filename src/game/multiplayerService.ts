@@ -7,8 +7,10 @@ import {
     addDoc,
     doc,
     updateDoc,
-    limit
+    limit,
+    runTransaction
 } from 'firebase/firestore';
+import { getDatabase, ref, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
 import { GameRoom, PlayerState } from './basraTypes';
 import { createInitialState, dealNewRound } from './basraEngine';
 
@@ -63,6 +65,9 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
             'gameState.players': newPlayers
         });
 
+        // Set up disconnect handler for the new player
+        await setupPlayerDisconnectHandler(roomDoc.id, user.uid);
+
         return roomDoc.id;
     } else {
         // Create new room
@@ -92,6 +97,10 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
         };
 
         const docRef = await addDoc(roomsRef, newRoom);
+        
+        // Set up disconnect handler for the host
+        await setupPlayerDisconnectHandler(docRef.id, user.uid);
+        
         return docRef.id;
     }
 }
@@ -112,4 +121,71 @@ export async function startGameInRoom(roomId: string) {
         players: nextGs.players,
         gameState: nextGs
     });
+}
+
+// ── Player Disconnect Handling ───────────────────────────────────────
+export async function setupPlayerDisconnectHandler(roomId: string, playerUid: string) {
+    const rtdb = getDatabase();
+    const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
+    
+    // Set up onDisconnect
+    const disconnect = rtdbOnDisconnect(disconnectRef);
+    await disconnect.set({
+        timestamp: Date.now(),
+        playerUid: playerUid,
+        roomId: roomId
+    });
+}
+
+export async function handlePlayerDisconnect(roomId: string, playerUid: string) {
+    const roomRef = doc(db, 'rooms', roomId);
+    
+    try {
+        await runTransaction(db, async (transaction) => {
+            const roomSnap = await transaction.get(roomRef);
+            if (!roomSnap.exists()) return;
+            
+            const roomData = roomSnap.data() as GameRoom;
+            const playerIndex = roomData.players.findIndex(p => p.uid === playerUid);
+            
+            if (playerIndex === -1) return; // Player not found
+            
+            // Count human players remaining
+            const humanPlayers = roomData.players.filter(p => p.isHuman && p.uid !== playerUid);
+            
+            if (humanPlayers.length === 0) {
+                // Close the room if no human players left
+                transaction.update(roomRef, {
+                    status: 'finished',
+                    playerCount: 0,
+                    playerUids: [],
+                    'gameState.phase': 'gameEnd',
+                    'gameState.winner': null,
+                    'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
+                });
+            } else {
+                // Replace disconnected player with bot
+                const updatedPlayers = [...roomData.players];
+                updatedPlayers[playerIndex] = {
+                    ...updatedPlayers[playerIndex],
+                    isHuman: false,
+                    uid: undefined,
+                    name: `بوت ${playerIndex + 1}`
+                };
+                
+                // Update playerUids to remove disconnected player
+                const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
+                
+                transaction.update(roomRef, {
+                    players: updatedPlayers,
+                    playerCount: updatedPlayerUids.length,
+                    playerUids: updatedPlayerUids,
+                    'gameState.players': updatedPlayers,
+                    'gameState.flashMessage': `تم استبدال اللاعب الذي خرج ببوت`
+                });
+            }
+        });
+    } catch (error) {
+        console.error('Error handling player disconnect:', error);
+    }
 }
