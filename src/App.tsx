@@ -20,11 +20,13 @@ function App() {
     useEffect(() => {
         let unsubData: (() => void) | null = null;
 
+        console.log("App useEffect started");
+
         const timeoutId = setTimeout(() => {
             console.error("Firebase connection timeout - showing auth screen");
             setLoading(false);
             setScreen('auth');
-        }, 3000);
+        }, 2000); // Reduced from 3000ms
 
         // Add fallback for demo mode
         const fallbackTimeout = setTimeout(() => {
@@ -40,7 +42,7 @@ function App() {
             });
             setScreen('lobby');
             setLoading(false);
-        }, 5000);
+        }, 4000); // Reduced from 5000ms
 
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             clearTimeout(timeoutId);
@@ -92,9 +94,13 @@ function App() {
             <div className="app-loading">
                 <div className="loader"></div>
                 <span>جاري تحميل عالم البصرة...</span>
+                <small style={{ fontSize: '12px', opacity: 0.7, marginTop: '10px' }}>
+                    الحالة: {screen} | المستخدم: {user ? 'موجود' : 'غير موجود'}
+                </small>
                 <button 
                     className="demo-mode-btn"
                     onClick={() => {
+                        console.log("Demo mode button clicked");
                         setUser({
                             uid: 'demo',
                             displayName: 'لاعب تجريبي',
