@@ -6,9 +6,10 @@ import LobbyScreen from './screens/LobbyScreen';
 import GameScreen from './screens/GameScreen';
 import StoreScreen from './screens/StoreScreen';
 import AuthScreen from './screens/AuthScreen';
+import ProfileScreen from './screens/ProfileScreen';
 import './App.css';
 
-export type Screen = 'lobby' | 'game' | 'store' | 'auth';
+export type Screen = 'lobby' | 'game' | 'store' | 'auth' | 'profile';
 
 function App() {
     const [user, setUser] = useState<any>(null);
@@ -105,6 +106,7 @@ function App() {
                 <LobbyScreen
                     onStartGame={() => setScreen('game')}
                     onOpenStore={() => setScreen('store')}
+                    onOpenProfile={() => setScreen('profile')}
                     userCoins={user.coins}
                     userName={user.displayName}
                 />
@@ -124,6 +126,12 @@ function App() {
                     purchasedSkins={user.purchasedSkins}
                     activeCardSkin={user.activeCardSkinId}
                     activeTableSkin={user.activeTableSkinId}
+                    onBack={() => setScreen('lobby')}
+                />
+            )}
+
+            {screen === 'profile' && user && (
+                <ProfileScreen
                     onBack={() => setScreen('lobby')}
                 />
             )}

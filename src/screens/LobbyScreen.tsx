@@ -1,10 +1,9 @@
-import { auth } from '../firebase';
-import { signOut } from 'firebase/auth';
 import './LobbyScreen.css';
 
 interface Props {
     onStartGame: () => void;
     onOpenStore: () => void;
+    onOpenProfile: () => void;
     userCoins: number;
     userName: string;
 }
@@ -12,15 +11,10 @@ interface Props {
 export default function LobbyScreen({
     onStartGame,
     onOpenStore,
+    onOpenProfile,
     userCoins,
     userName
 }: Props) {
-    const handleLogout = () => {
-        if (window.confirm('هل تريد تسجيل الخروج؟')) {
-            signOut(auth);
-        }
-    };
-
     return (
         <div className="lobby-root">
 
@@ -52,7 +46,7 @@ export default function LobbyScreen({
                         <span className="coin-icon">🪙</span>
                         <span className="coin-amount">{(userCoins || 0).toLocaleString()}</span>
                     </div>
-                    <div className="avatar-small" onClick={handleLogout} style={{ cursor: 'pointer' }} title="تسجيل الخروج">
+                    <div className="avatar-small" onClick={onOpenProfile} style={{ cursor: 'pointer' }} title="الملف الشخصي">
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}&backgroundColor=b6e3f4`} alt={userName} />
                     </div>
                 </div>
@@ -139,9 +133,9 @@ export default function LobbyScreen({
                     <span className="nav-icon">🛍️</span>
                     <span className="nav-label">المتجر</span>
                 </button>
-                <button className="nav-item">
-                    <span className="nav-icon">⚙️</span>
-                    <span className="nav-label">الإعدادات</span>
+                <button className="nav-item" onClick={onOpenProfile}>
+                    <span className="nav-icon">👤</span>
+                    <span className="nav-label">الملف الشخصي</span>
                 </button>
             </nav>
         </div>
