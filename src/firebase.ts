@@ -4,6 +4,8 @@ import { getAuth, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
 
 import { getFirestore, doc, updateDoc, deleteDoc } from "firebase/firestore";
 
+import { getDatabase } from "firebase/database";
+
 
 
 const firebaseConfig = {
@@ -20,7 +22,9 @@ const firebaseConfig = {
 
     appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "1:924729196979:web:2ac421aea3aff746848bc6",
 
-    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "G-15TVK63C8D"
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID ?? "G-15TVK63C8D",
+
+    databaseURL: "https://basra-game-default-rtdb.firebaseio.com/"
 
 };
 
@@ -32,11 +36,12 @@ export const auth = getAuth(app);
 
 export const db = getFirestore(app);
 
+export const rtdb = getDatabase(app);
+
 export const googleProvider = new GoogleAuthProvider();
 
 export const appleProvider = new OAuthProvider('apple.com');
 
-
+export { doc, updateDoc, deleteDoc };
 
 export default app;
-

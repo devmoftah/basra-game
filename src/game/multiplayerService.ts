@@ -1,4 +1,4 @@
-import { db, auth } from '../firebase';
+import { db, auth, rtdb } from '../firebase';
 import {
     collection,
     query,
@@ -10,7 +10,7 @@ import {
     limit,
     runTransaction
 } from 'firebase/firestore';
-import { getDatabase, ref, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
+import { ref, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
 import { GameRoom } from './basraTypes';
 import { createInitialState, dealNewRound } from './basraEngine';
 
@@ -148,7 +148,6 @@ export async function startGameInRoom(roomId: string) {
 // ── Player Disconnect Handling ───────────────────────────────────────
 export async function setupPlayerDisconnectHandler(roomId: string, playerUid: string) {
     try {
-        const rtdb = getDatabase();
         const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
 
         // Set up onDisconnect with voluntary exit flag
@@ -168,7 +167,6 @@ export async function setupPlayerDisconnectHandler(roomId: string, playerUid: st
 
 export async function markVoluntaryExit(roomId: string, playerUid: string) {
     try {
-        const rtdb = getDatabase();
         const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
         const disconnect = rtdbOnDisconnect(disconnectRef);
         await disconnect.set({
