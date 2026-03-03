@@ -141,8 +141,14 @@ function calcPoints(played: Card, table: Card[] = []): number {
     // 2, 3, 4 = 0 points
     if ([2, 3, 4].includes(v)) return 0;
     
-    // Ace = 25 points (بصرة)
-    if (v === 1) return 25;
+    // Ace = 25 points (only on Ace)
+    if (v === 1) {
+        // Check if table has only one Ace
+        if (table.length === 1 && table[0].value === 1) {
+            return 25;
+        }
+        return 0; // Ace doesn't capture other cards
+    }
     
     // Regular cards (5-10)
     if (v === 5) return 10;
@@ -151,18 +157,25 @@ function calcPoints(played: Card, table: Card[] = []): number {
     if (v === 9) return 18;
     if (v === 10) return 20;
     
-    // 7♦️ (الكوماندو) - special rules
+    // Regular 7 = 25 points
+    if (v === 7 && played.suit !== 'diamonds') return 25;
+    
+    // 7♦️ (الكوماندو) - acts as joker with target value
     if (v === 7 && played.suit === 'diamonds') {
-        const tableSum = table.reduce((sum, card) => sum + card.value, 0);
-        if (tableSum <= 10) return 50; // بصرة كاملة
-        return 25; // كجوكر
+        // Points depend on what it's capturing
+        // This will be handled in applyMove
+        return 0;
     }
     
-    // Regular 7 = 25 points
-    if (v === 7) return 25;
-    
-    // Jack (الولد) = 50 points (يقش الطاولة)
-    if (v === 11) return 50;
+    // Jack (الولد) = 50 points (only on Jack or 7♦️)
+    if (v === 11) {
+        // Check if table has only one Jack or one 7♦️
+        if (table.length === 1 && 
+            (table[0].value === 11 || (table[0].value === 7 && table[0].suit === 'diamonds'))) {
+            return 50;
+        }
+        return 0; // Jack doesn't get points on other cards
+    }
     
     return 0;
 }
@@ -173,10 +186,18 @@ export function calcRoundScores(players: PlayerState[]): [number, number] {
         if (p.team === 0) s0 += p.basraPoints;
         else s1 += p.basraPoints;
     });
+    
+    // Card collection bonus - 20 points to team with most cards
     const c0 = players.filter(p => p.team === 0).reduce((s, p) => s + p.captured.length, 0);
     const c1 = players.filter(p => p.team === 1).reduce((s, p) => s + p.captured.length, 0);
-    if (c0 > c1) s0 += 20;
-    else if (c1 > c0) s1 += 20;
+    
+    if (c0 > c1) {
+        s0 += 20;
+    } else if (c1 > c0) {
+        s1 += 20;
+    }
+    // If equal, no bonus
+    
     return [s0, s1];
 }
 
@@ -199,14 +220,13 @@ export function createInitialState(humanSkinId?: string): GameState {
 
 export function dealNewRound(state: GameState): GameState {
     const deck = shuffle(createDeck());
-    // In Basra, the first round of a game puts 4 cards on the table
-    const tableCards = deck.splice(0, 4);
+    // First deal: 4 cards to each player, no cards on table
     const players = state.players.map(p => ({
         ...p, hand: deck.splice(0, 4), captured: [], basraPoints: 0,
     }));
     return {
-        ...state, deck, tableCards, players,
-        currentPlayer: 0, phase: 'playing', lastCapturePlayer: null, flashMessage: null,
+        ...state, deck, tableCards: [], players,
+        currentPlayer: 0, phase: 'playing', lastCapturePlayer: null, flashMessage: 'بدأت الجولة الجديدة! 4 كروت لكل لاعب',
     };
 }
 
@@ -218,18 +238,34 @@ export function redealIfNeeded(state: GameState): GameState {
         return state; // No redeal needed
     }
     
-    // Redeal 4 cards to each player
+    // Determine how many cards to deal based on deck size
+    const deckSize = state.deck.length;
+    let cardsToDeal: number;
+    let message: string;
+    
+    if (deckSize === 28) {
+        // Second deal: 3 cards to each player
+        cardsToDeal = 3;
+        message = 'تم توزيع 3 كروت جديدة لكل لاعب';
+    } else if (deckSize === 16) {
+        // Third deal: 4 cards to each player
+        cardsToDeal = 4;
+        message = 'تم توزيع 4 كروت جديدة لكل لاعب';
+    } else {
+        return state; // Unexpected deck size
+    }
+    
     const newDeck = [...state.deck];
     const players = state.players.map(p => ({
         ...p,
-        hand: newDeck.splice(0, 4), // 4 new cards
+        hand: newDeck.splice(0, cardsToDeal),
     }));
     
     return {
         ...state,
         deck: newDeck,
         players,
-        flashMessage: 'تم إعادة توزيع 4 كروت جديدة لكل لاعب',
+        flashMessage: message,
     };
 }
 
@@ -400,6 +436,11 @@ export function processScore(state: GameState, roomId?: string): GameState {
                 console.error('Error updating room:', error);
             }
         }, 2000);
+    } else {
+        // Start new round after 5 seconds
+        setTimeout(() => {
+            // This will be handled by the game screen
+        }, 5000);
     }
 
     return newState;
