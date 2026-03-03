@@ -1,7 +1,4 @@
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from './firebase';
 import LobbyScreen from './screens/LobbyScreen';
 import GameScreen from './screens/GameScreen';
 import StoreScreen from './screens/StoreScreen';
@@ -18,44 +15,22 @@ function App() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        let unsubData: (() => void) | null = null;
-
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-            if (unsubData) { unsubData(); unsubData = null; }
-
-            if (firebaseUser) {
-                const userRef = doc(db, 'users', firebaseUser.uid);
-                unsubData = onSnapshot(userRef,
-                    (docSnap) => {
-                        if (docSnap.exists()) {
-                            setUser(docSnap.data());
-                            setScreen('lobby');
-                        } else {
-                            setScreen('auth');
-                        }
-                        setLoading(false);
-                    },
-                    (error) => {
-                        console.error("Firestore loading error:", error);
-                        setScreen('auth');
-                        setLoading(false);
-                    }
-                );
-            } else {
-                setUser(null);
-                setScreen('auth');
-                setLoading(false);
-            }
-        }, (error) => {
-            console.error("Auth state change error:", error);
+        // Immediate demo mode for now - skip Firebase entirely
+        const timer = setTimeout(() => {
+            setUser({
+                uid: 'demo',
+                displayName: 'لاعب تجريبي',
+                coins: 1500,
+                purchasedSkins: ['k1', 't2'],
+                activeCardSkinId: 'k1',
+                activeTableSkinId: 't2',
+                stats: { wins: 0, losses: 0, totalGames: 0 }
+            });
+            setScreen('lobby');
             setLoading(false);
-            setScreen('auth');
-        });
+        }, 1000);
 
-        return () => {
-            unsubscribe();
-            if (unsubData) unsubData();
-        };
+        return () => clearTimeout(timer);
     }, []);
 
     if (loading) {
