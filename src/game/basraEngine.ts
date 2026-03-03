@@ -28,6 +28,7 @@ export function shuffle<T>(arr: T[]): T[] {
 export function findCaptures(played: Card, table: Card[]): CaptureOption[] {
     if (table.length === 0) return [];
 
+    // 1. Jack (J) - Always sweeps the whole table
     if (isJack(played)) {
         let basraPoints = 0;
         let isBasra = false;
@@ -41,49 +42,95 @@ export function findCaptures(played: Card, table: Card[]): CaptureOption[] {
         return [{ cards: [...table], isBasra, basraPoints, type }];
     }
 
+    // 2. Diamond 7 (Comando) - Special wildcard logic
     if (isDiamondSeven(played)) {
-        let basraPoints = 0;
-        let isBasra = false;
-        if (table.length === 1) {
-            const v = table[0].value;
-            if (v === 1 || (v >= 5 && v <= 11)) {
-                basraPoints = calcPoints(table[0]);
-                isBasra = true;
+        const totalSum = table.reduce((s, c) => s + c.value, 0);
+
+        // Rule: If total sum is 10 or less, it's a total sweep Basra
+        if (totalSum <= 10) {
+            return [{ cards: [...table], isBasra: true, basraPoints: 50, type: 'd7_sweep' }];
+        }
+
+        // Rule: Diamond 7 can also act as any value (1-10) to clear the table
+        // We check if any target value (1-10) can sweep the whole table using combined rules
+        for (let v = 1; v <= 10; v++) {
+            const captured = getBestCaptureForValue(v, table);
+            if (captured.length === table.length) {
+                return [{ cards: captured, isBasra: true, basraPoints: 25, type: 'd7_sweep' }];
             }
         }
-        return [{ cards: [...table], isBasra, basraPoints, type: 'd7_sweep' }];
     }
 
-    const options: CaptureOption[] = [];
-    const directMatches = table.filter(c => c.value === played.value);
-    if (directMatches.length > 0) {
-        const isBasra = table.length === directMatches.length;
-        const pts = (isBasra && ![2, 3, 4].includes(played.value)) ? calcPoints(played) : 0;
-        options.push({ cards: directMatches, isBasra: isBasra && pts > 0, basraPoints: pts, type: 'direct' });
-        return options;
+    // 3. General Logic for 1-10 (including Diamond 7 acting as face value 7)
+    const targetValue = played.value;
+    const captured = getBestCaptureForValue(targetValue, table);
+
+    if (captured.length > 0) {
+        const isBasra = captured.length === table.length;
+        let basraPoints = 0;
+        if (isBasra) {
+            basraPoints = calcPoints(played);
+        }
+        return [{ cards: captured, isBasra, basraPoints, type: 'direct' }];
     }
 
-    const combos = findSumCombos(played.value, table);
-    if (combos.length > 0) {
-        combos.sort((a, b) => b.length - a.length);
-        const best = combos[0];
-        const isBasra = table.length === best.length;
-        const pts = (isBasra && ![2, 3, 4].includes(played.value)) ? 14 : 0;
-        options.push({ cards: best, isBasra: isBasra && pts > 0, basraPoints: pts, type: 'sum' });
-    }
-
-    return options;
+    return [];
 }
 
-function findSumCombos(target: number, table: Card[]): Card[][] {
-    const results: Card[][] = [];
-    function bt(i: number, cur: Card[], sum: number) {
-        if (sum === target && cur.length >= 2) { results.push([...cur]); return; }
-        if (sum >= target || i >= table.length) return;
-        bt(i + 1, [...cur, table[i]], sum + table[i].value);
-        bt(i + 1, cur, sum);
+/**
+ * Finds the best combination of cards to capture for a given value.
+ * This includes all direct matches of the value + all disjoint sets that sum to the value.
+ */
+function getBestCaptureForValue(target: number, table: Card[]): Card[] {
+    // Take all direct matches first
+    const directMatches = table.filter(c => c.value === target);
+    let remainingTable = table.filter(c => c.value !== target);
+
+    // From remaining, find the maximum number of cards that can be partitioned into sets summing to target
+    const sumCaptures = findMaxSumPartition(target, remainingTable);
+
+    return [...directMatches, ...sumCaptures];
+}
+
+function findMaxSumPartition(target: number, cards: Card[]): Card[] {
+    let bestSet: Card[] = [];
+
+    function solve(index: number, currentAvailable: Card[], currentCaptured: Card[]) {
+        if (currentCaptured.length > bestSet.length) {
+            bestSet = [...currentCaptured];
+        }
+        if (index >= currentAvailable.length) return;
+
+        // Try all possible subsets starting from 'index' that sum to 'target'
+        const subsets = findAllSubsetsSummarizingTo(target, currentAvailable, index);
+
+        for (const subset of subsets) {
+            const remaining = currentAvailable.filter(c => !subset.find(s => s.id === c.id));
+            solve(0, remaining, [...currentCaptured, ...subset]);
+
+            // Optimization: if we already cleared everything, stop
+            if (bestSet.length === currentAvailable.length + currentCaptured.length) return;
+        }
     }
-    bt(0, [], 0);
+
+    solve(0, cards, []);
+    return bestSet;
+}
+
+function findAllSubsetsSummarizingTo(target: number, cards: Card[], startIndex: number): Card[][] {
+    const results: Card[][] = [];
+    function backtrack(i: number, current: Card[], currentSum: number) {
+        if (currentSum === target) {
+            results.push([...current]);
+            return;
+        }
+        if (currentSum > target || i >= cards.length) return;
+
+        for (let j = i; j < cards.length; j++) {
+            backtrack(j + 1, [...current, cards[j]], currentSum + cards[j].value);
+        }
+    }
+    backtrack(startIndex, [], 0);
     return results;
 }
 
