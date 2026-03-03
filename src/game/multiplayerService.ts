@@ -35,6 +35,39 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
         });
     }
 
+    // If no waiting room available, create new room immediately
+    if (!roomDoc) {
+        // Create new room
+        const initialState = createInitialState(skinId);
+        const newRoom: GameRoom = {
+            id: '', // Firestore will assign this
+            status: 'waiting',
+            players: [{
+                id: 0,
+                uid: user.uid,
+                name: userName,
+                hand: [],
+                captured: [],
+                basraPoints: 0,
+                isHuman: true,
+                team: 0,
+                activeSkinId: skinId
+            }],
+            playerCount: 1,
+            playerUids: [user.uid],
+            adminId: user.uid,
+            gameState: initialState,
+            createdAt: Date.now().toString()
+        };
+
+        const docRef = await addDoc(roomsRef, newRoom);
+        
+        // Set up disconnect handler for the host
+        await setupPlayerDisconnectHandler(docRef.id, user.uid);
+        
+        return docRef.id;
+    }
+
     if (roomDoc) {
         // Join existing room
         const roomData = roomDoc.data() as GameRoom;
