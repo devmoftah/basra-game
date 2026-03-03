@@ -143,12 +143,25 @@ export async function setupPlayerDisconnectHandler(roomId: string, playerUid: st
     const rtdb = getDatabase();
     const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
     
-    // Set up onDisconnect
+    // Set up onDisconnect with voluntary exit flag
+    const disconnectHandler = rtdbOnDisconnect(disconnectRef);
+    await disconnectHandler.set({
+        timestamp: Date.now(),
+        playerUid: playerUid,
+        roomId: roomId,
+        isVoluntaryExit: false // Default to false, will be set to true on manual exit
+    });
+}
+
+export async function markVoluntaryExit(roomId: string, playerUid: string) {
+    const rtdb = getDatabase();
+    const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
     const disconnect = rtdbOnDisconnect(disconnectRef);
     await disconnect.set({
         timestamp: Date.now(),
         playerUid: playerUid,
-        roomId: roomId
+        roomId: roomId,
+        isVoluntaryExit: true // Mark as voluntary exit
     });
 }
 
@@ -165,6 +178,11 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
             
             if (playerIndex === -1) return; // Player not found
             
+            // For now, we'll implement a simple check:
+            // If player is still connected to auth, assume it's a voluntary exit
+            // If player is not connected, assume it's a real disconnect
+            const isVoluntaryExit = auth.currentUser?.uid === playerUid;
+            
             // Count human players remaining
             const humanPlayers = roomData.players.filter(p => p.isHuman && p.uid !== playerUid);
             
@@ -178,8 +196,8 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.winner': null,
                     'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
                 });
-            } else {
-                // Replace disconnected player with bot
+            } else if (!isVoluntaryExit) {
+                // Only replace with bot if it's not a voluntary exit
                 const updatedPlayers = [...roomData.players];
                 updatedPlayers[playerIndex] = {
                     ...updatedPlayers[playerIndex],
@@ -199,6 +217,7 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.flashMessage': `تم استبدال اللاعب الذي خرج ببوت`
                 });
             }
+            // If it's a voluntary exit, don't replace the player - just remove them
         });
     } catch (error) {
         console.error('Error handling player disconnect:', error);
