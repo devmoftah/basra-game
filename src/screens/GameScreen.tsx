@@ -87,7 +87,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
 
     const handleTimeout = async () => {
         if (!gs || !room) return;
-        const myIndex = gs.players.findIndex(p => p.isHuman && p.name === auth.currentUser?.displayName);
+        const myIndex = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
         const isMyTurn = gs.currentPlayer === myIndex;
 
         if (isMyTurn || (isHost && !gs.players[gs.currentPlayer].isHuman)) {
@@ -167,7 +167,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         e.stopPropagation();
         if (!gs || gs.phase !== 'playing' || previewMove) return;
 
-        const myIndex = gs.players.findIndex(p => p.isHuman && p.name === auth.currentUser?.displayName);
+        const myIndex = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
         if (gs.currentPlayer !== myIndex) return;
 
         if (selectedCard?.id === card.id) {
@@ -225,8 +225,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         );
     }
 
-    const myIndex = gs.players.findIndex(p => p.isHuman && p.name === auth.currentUser?.displayName);
-    const human = gs.players[myIndex] || gs.players[0];
+    const myIndex = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
+    const human = gs.players[myIndex] || gs.players[0] || { hand: [], basraPoints: 0 };
+    const turnsSafe = (idx: number) => gs.players[idx] || { name: '...', hand: [], basraPoints: 0, activeSkinId: 'k1' };
     const isActuallyMyTurn = gs.currentPlayer === myIndex && gs.phase === 'playing' && !previewMove;
 
     return (
@@ -256,16 +257,16 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 </div>
                 <div className="gtb-right">
                     <div className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}>
-                        {previewMove ? `● يلعب: ${gs.players[previewMove.playerIndex].name}` :
-                            (isActuallyMyTurn ? `● دورك (${turnTimer}ث)` : `● ${gs.players[gs.currentPlayer].name} (${turnTimer}ث)`)}
+                        {previewMove ? `● يلعب: ${gs.players[previewMove.playerIndex]?.name || '...'}` :
+                            (isActuallyMyTurn ? `● دورك (${turnTimer}ث)` : `● ${gs.players[gs.currentPlayer]?.name || '...'} (${turnTimer}ث)`)}
                     </div>
                 </div>
             </header>
 
             <main className="game-table-area">
-                <Opponent player={gs.players[(myIndex + 2) % 4]} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} />
-                <Opponent player={gs.players[(myIndex + 1) % 4]} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
-                <Opponent player={gs.players[(myIndex + 3) % 4]} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
+                <Opponent player={turnsSafe((myIndex + 2) % 4)} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} />
+                <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
+                <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
 
                 <div className="sadu-table" style={{
                     background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined
@@ -279,7 +280,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                                 <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-24px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
                             ))}
 
-                            {previewMove && (
+                            {previewMove && gs.players[previewMove.playerIndex] && (
                                 <div className="preview-layer">
                                     <CardComp
                                         card={previewMove.card}
@@ -315,7 +316,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
             <div className="player-hand-area">
                 <div className="hand-label">{human.basraPoints > 0 && <span>⭐ بصرة: {human.basraPoints}</span>}</div>
                 <div className="hand-cards">
-                    {human.hand.map((c, i) => {
+                    {human.hand.map((c: any, i: number) => {
                         const rot = (i - (human.hand.length - 1) / 2) * 7;
                         const isSel = selectedCard?.id === c.id;
                         return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={myCardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
