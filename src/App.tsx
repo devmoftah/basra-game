@@ -5,11 +5,12 @@ import { auth, db } from './firebase';
 import LobbyScreen from './screens/LobbyScreen';
 import GameScreen from './screens/GameScreen';
 import StoreScreen from './screens/StoreScreen';
+import PurchasesScreen from './screens/PurchasesScreen';
 import AuthScreen from './screens/AuthScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import './App.css';
 
-export type Screen = 'lobby' | 'game' | 'store' | 'auth' | 'profile';
+export type Screen = 'lobby' | 'game' | 'store' | 'purchases' | 'auth' | 'profile';
 
 function App() {
     const [user, setUser] = useState<any>(null);
@@ -106,6 +107,7 @@ function App() {
                 <LobbyScreen
                     onStartGame={() => setScreen('game')}
                     onOpenStore={() => setScreen('store')}
+                    onOpenPurchases={() => setScreen('purchases')}
                     onOpenProfile={() => setScreen('profile')}
                     userCoins={user.coins}
                     userName={user.displayName}
@@ -117,6 +119,13 @@ function App() {
                     onExitGame={() => setScreen('lobby')}
                     activeCardSkinId={user.activeCardSkinId}
                     activeTableSkinId={user.activeTableSkinId}
+                />
+            )}
+
+            {screen === 'purchases' && user && (
+                <PurchasesScreen
+                    userCoins={user.coins}
+                    onBack={() => setScreen('lobby')}
                 />
             )}
 
