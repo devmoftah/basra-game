@@ -25,12 +25,14 @@ export default defineConfig({
                     {
                         src: 'assets/skins/cards/card_back_darnes.png',
                         sizes: '192x192',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any'
                     },
                     {
                         src: 'assets/skins/cards/card_back_darnes.png',
                         sizes: '512x512',
-                        type: 'image/png'
+                        type: 'image/png',
+                        purpose: 'any'
                     }
                 ]
             }
