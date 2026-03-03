@@ -44,6 +44,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const isScoringInProgress = useRef(false);
     const roomIdRef = useRef<string | null>(null);
 
+    // Force re-render when admin changes
+    useEffect(() => {
+        // This empty dependency array with isHost will trigger re-render
+        // when room.adminId changes because isHost will be recalculated
+    }, [room?.adminId, isHost]);
+
     // Update room ID ref when room changes
     useEffect(() => {
         if (room) {
