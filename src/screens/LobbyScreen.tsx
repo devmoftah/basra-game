@@ -1,12 +1,20 @@
+import { auth } from '../firebase';
+import { signOut } from 'firebase/auth';
 import './LobbyScreen.css';
 
 interface Props {
     onStartGame: () => void;
     onOpenStore: () => void;
     userCoins: number;
+    userName: string;
 }
 
-export default function LobbyScreen({ onStartGame, onOpenStore, userCoins }: Props) {
+export default function LobbyScreen({ onStartGame, onOpenStore, userCoins, userName }: Props) {
+    const handleLogout = () => {
+        if (window.confirm('هل تريد تسجيل الخروج؟')) {
+            signOut(auth);
+        }
+    };
     return (
         <div className="lobby-root">
 
@@ -38,8 +46,8 @@ export default function LobbyScreen({ onStartGame, onOpenStore, userCoins }: Pro
                         <span className="coin-icon">🪙</span>
                         <span className="coin-amount">{userCoins.toLocaleString()}</span>
                     </div>
-                    <div className="avatar-small">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=me&backgroundColor=b6e3f4" alt="أنا" />
+                    <div className="avatar-small" onClick={handleLogout} style={{ cursor: 'pointer' }} title="تسجيل الخروج">
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}&backgroundColor=b6e3f4`} alt={userName} />
                     </div>
                 </div>
             </header>
