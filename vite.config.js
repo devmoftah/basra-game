@@ -7,7 +7,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.ico', 'assets/skins/cards/card_back_darnes.png'],
+            includeAssets: [],
             manifest: {
                 name: 'Basra Club - لعبة البصرة',
                 short_name: 'Basra',
@@ -16,8 +16,8 @@ export default defineConfig({
                 background_color: '#151008',
                 display: 'standalone',
                 orientation: 'portrait',
-                start_url: '/basra-game/',
-                scope: '/basra-game/',
+                start_url: './',
+                scope: './',
                 icons: [
                     {
                         src: './assets/skins/cards/card_back_darnes.png',
@@ -35,6 +35,7 @@ export default defineConfig({
             },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+                globIgnores: ['**/node_modules/**/*'],
             }
         })
     ],

@@ -50,7 +50,7 @@ export default function LobbyScreen({
                 <div className="lobby-header-right">
                     <div className="coins-badge" onClick={onOpenStore} style={{ cursor: 'pointer' }}>
                         <span className="coin-icon">🪙</span>
-                        <span className="coin-amount">{userCoins.toLocaleString()}</span>
+                        <span className="coin-amount">{(userCoins || 0).toLocaleString()}</span>
                     </div>
                     <div className="avatar-small" onClick={handleLogout} style={{ cursor: 'pointer' }} title="تسجيل الخروج">
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}&backgroundColor=b6e3f4`} alt={userName} />

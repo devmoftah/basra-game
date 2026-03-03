@@ -77,7 +77,7 @@ export default function StoreScreen({
                 <h1 className="store-title">متجر البصرة</h1>
                 <div className="user-balance">
                     <span className="coin-icon">💰</span>
-                    <span className="balance-text">{userCoins.toLocaleString()}</span>
+                    <span className="balance-text">{(userCoins || 0).toLocaleString()}</span>
                 </div>
             </header>
 

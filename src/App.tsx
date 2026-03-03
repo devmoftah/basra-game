@@ -16,25 +16,73 @@ function App() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let unsubData: (() => void) | null = null;
+
+        const timeoutId = setTimeout(() => {
+            console.error("Firebase connection timeout - showing auth screen");
+            setLoading(false);
+            setScreen('auth');
+        }, 3000);
+
+        // Add fallback for demo mode
+        const fallbackTimeout = setTimeout(() => {
+            console.warn("Using demo mode - Firebase not available");
+            setUser({
+                uid: 'demo',
+                displayName: 'لاعب تجريبي',
+                coins: 1500,
+                purchasedSkins: ['k1', 't2'],
+                activeCardSkinId: 'k1',
+                activeTableSkinId: 't2',
+                stats: { wins: 0, losses: 0, totalGames: 0 }
+            });
+            setScreen('lobby');
+            setLoading(false);
+        }, 5000);
+
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+            clearTimeout(timeoutId);
+            clearTimeout(fallbackTimeout);
+            if (unsubData) { unsubData(); unsubData = null; }
+
             if (firebaseUser) {
-                // User is signed in, listen to their data in Firestore
                 const userRef = doc(db, 'users', firebaseUser.uid);
-                const unsubData = onSnapshot(userRef, (docSnap) => {
-                    if (docSnap.exists()) {
-                        setUser(docSnap.data());
-                        setScreen('lobby');
+                unsubData = onSnapshot(userRef,
+                    (docSnap) => {
+                        if (docSnap.exists()) {
+                            setUser(docSnap.data());
+                            setScreen('lobby');
+                        } else {
+                            // User authenticated but no document yet
+                            setScreen('auth');
+                        }
+                        setLoading(false);
+                    },
+                    (error) => {
+                        console.error("Firestore loading error:", error);
+                        setScreen('auth');
+                        setLoading(false);
                     }
-                    setLoading(false);
-                });
-                return () => unsubData();
+                );
             } else {
                 setUser(null);
                 setScreen('auth');
                 setLoading(false);
             }
+        }, (error) => {
+            clearTimeout(timeoutId);
+            clearTimeout(fallbackTimeout);
+            console.error("Auth state change error:", error);
+            setLoading(false);
+            setScreen('auth');
         });
-        return () => unsubscribe();
+
+        return () => {
+            clearTimeout(timeoutId);
+            clearTimeout(fallbackTimeout);
+            unsubscribe();
+            if (unsubData) unsubData();
+        };
     }, []);
 
     if (loading) {
