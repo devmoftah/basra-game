@@ -261,29 +261,53 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
     } else {
         // Special rules for Jack and 7♦️
         if (card.value === 11) {
-            // Jack (الولد) - يقش الطاولة بالكامل
-            player.captured.push(card, ...tableCards);
-            player.basraPoints += 50;
-            flashMessage = `الولد يقش الطاولة! +50 نقطة 🎯`;
-            tableCards = [];
-            lastCapturePlayer = playerIndex;
-        } else if (card.value === 7 && card.suit === 'diamonds') {
-            // 7♦️ (الكوماندو) - special rules
-            const tableSum = tableCards.reduce((sum, c) => sum + c.value, 0);
-            if (tableSum <= 10) {
-                // بصرة كاملة
+            // Jack (الولد) - بصرة 50 فقط على ورقة واحدة
+            if (tableCards.length === 1) {
+                // بصرة 50 نقطة
                 player.captured.push(card, ...tableCards);
                 player.basraPoints += 50;
-                flashMessage = `الكوماندو بصرة! +50 نقطة 💎`;
+                flashMessage = `بصرة الولد! +50 نقطة 🎯`;
                 tableCards = [];
                 lastCapturePlayer = playerIndex;
             } else {
-                // كجوكر - ياخذ كل شي
+                // يقش الطاولة بدون نقاط
                 player.captured.push(card, ...tableCards);
-                player.basraPoints += 25;
-                flashMessage = `الكوماندو كجوكر! +25 نقطة 🃏`;
+                flashMessage = `الولد يقش الطاولة! 🎯`;
                 tableCards = [];
                 lastCapturePlayer = playerIndex;
+            }
+        } else if (card.value === 7 && card.suit === 'diamonds') {
+            // 7♦️ (الكوماندو) - جوكر ياخد بنفس قيمة الرقم
+            // TODO: Add logic to let player choose which value to use
+            // For now, we'll implement basic logic
+            if (tableCards.length === 1) {
+                // بصرة على ورقة واحدة - ياخد بنفس قيمة الورقة
+                const targetCard = tableCards[0];
+                const points = calcPoints(targetCard);
+                player.captured.push(card, ...tableCards);
+                player.basraPoints += points;
+                flashMessage = `الكوماندو بصرة! +${points} نقطة 💎`;
+                tableCards = [];
+                lastCapturePlayer = playerIndex;
+            } else {
+                // Check if there's a capture possibility (sum to some value)
+                const hasCapture = findCaptures(card, tableCards).length > 0;
+                if (hasCapture) {
+                    // TODO: Let player choose which capture to make
+                    // For now, just take first available capture
+                    const capture = findCaptures(card, tableCards)[0];
+                    player.captured.push(card, ...capture.cards);
+                    player.basraPoints += capture.basraPoints || 0;
+                    flashMessage = `الكوماندو بصرة! +${capture.basraPoints || 0} نقطة 💎`;
+                    tableCards = tableCards.filter(c => !capture.cards.find(x => x.id === c.id));
+                    lastCapturePlayer = playerIndex;
+                } else {
+                    // يقش الطاولة بدون نقاط
+                    player.captured.push(card, ...tableCards);
+                    flashMessage = `الكوماندو يقش الطاولة! 💎`;
+                    tableCards = [];
+                    lastCapturePlayer = playerIndex;
+                }
             }
         } else {
             tableCards = [...tableCards, card];
