@@ -9,7 +9,7 @@ import {
 import { STORE_ITEMS } from '../data/storeItems';
 import { db, auth } from '../firebase';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { findOrCreateRoom, startGameInRoom, replacePlayerWithBot } from '../game/multiplayerService';
+import { findOrCreateRoom, startGameInRoom, replacePlayerWithBot, markVoluntaryExit } from '../game/multiplayerService';
 import './GameScreen.css';
 
 interface Props {
@@ -43,6 +43,18 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const isProcessingMove = useRef(false);
     const isScoringInProgress = useRef(false);
     const roomIdRef = useRef<string | null>(null);
+
+    // Handle exit with voluntary exit marking
+    const handleExit = async () => {
+        if (room && auth.currentUser?.uid) {
+            try {
+                await markVoluntaryExit(room.id, auth.currentUser.uid);
+            } catch (error) {
+                console.error('Error marking voluntary exit:', error);
+            }
+        }
+        onExitGame();
+    };
 
     // Force re-render when admin changes
     useEffect(() => {
@@ -98,12 +110,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     } else {
                         // Room deleted
                         console.error('❌ Room deleted');
-                        onExitGame();
+                        handleExit();
                     }
                 });
             } catch (err) {
                 console.error('❌ Failed to join room:', err);
-                onExitGame();
+                handleExit();
             }
         };
         join();
