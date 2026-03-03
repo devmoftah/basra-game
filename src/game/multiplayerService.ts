@@ -7,6 +7,7 @@ import {
     addDoc,
     doc,
     updateDoc,
+    deleteDoc,
     limit,
     runTransaction
 } from 'firebase/firestore';
@@ -245,6 +246,7 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
 
             // Count human players remaining
             const humanPlayers = roomData.players.filter(p => p.isHuman && p.uid !== playerUid);
+            const isExitingAdmin = roomData.adminId === playerUid;
 
             if (humanPlayers.length === 0) {
                 // Close the room if no human players left
@@ -256,25 +258,49 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.winner': null,
                     'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
                 });
-            } else if (!isVoluntaryExit) {
-                // Only replace with bot if it's not a voluntary exit
-                const updatedPlayers = [...roomData.players];
-                updatedPlayers[playerIndex] = {
-                    ...updatedPlayers[playerIndex],
-                    isHuman: false,
-                    uid: undefined,
-                    name: `بوت ${playerIndex + 1}`
-                };
+                
+                // Schedule room deletion after 30 seconds
+                setTimeout(async () => {
+                    try {
+                        await deleteDoc(roomRef);
+                        console.log(`🗑️ Room ${roomId} deleted - no human players left`);
+                    } catch (error) {
+                        console.error('Error deleting room:', error);
+                    }
+                }, 30000);
+            } else {
+                let updatedPlayers = [...roomData.players];
+                let updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
+                let newAdminId = roomData.adminId;
+                let flashMessage = '';
 
-                // Update playerUids to remove disconnected player
-                const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
+                if (isExitingAdmin && humanPlayers.length > 0) {
+                    // Transfer admin to the next human player
+                    const newAdmin = humanPlayers[0];
+                    if (newAdmin.uid) {
+                        newAdminId = newAdmin.uid;
+                        flashMessage = `تم نقل الأدمنية إلى ${newAdmin.name}`;
+                    }
+                }
+
+                if (!isVoluntaryExit) {
+                    // Replace with bot if it's not a voluntary exit
+                    updatedPlayers[playerIndex] = {
+                        ...updatedPlayers[playerIndex],
+                        isHuman: false,
+                        uid: undefined,
+                        name: `بوت ${playerIndex + 1}`
+                    };
+                    flashMessage = flashMessage || `تم استبدال اللاعب الذي خرج ببوت`;
+                }
 
                 transaction.update(roomRef, {
+                    adminId: newAdminId,
                     players: updatedPlayers,
                     playerCount: updatedPlayerUids.length,
                     playerUids: updatedPlayerUids,
                     'gameState.players': updatedPlayers,
-                    'gameState.flashMessage': `تم استبدال اللاعب الذي خرج ببوت`
+                    'gameState.flashMessage': flashMessage
                 });
             }
             // If it's a voluntary exit, don't replace the player - just remove them
