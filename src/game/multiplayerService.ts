@@ -4,6 +4,7 @@ import {
     query,
     where,
     getDocs,
+    getDoc,
     addDoc,
     doc,
     updateDoc,
@@ -168,11 +169,8 @@ export async function setupPlayerDisconnectHandler(roomId: string, playerUid: st
 
 export async function markVoluntaryExit(roomId: string, playerUid: string) {
     try {
-        // Handle the disconnect immediately - this is enough for voluntary exit
+        // Handle the disconnect immediately
         await handlePlayerDisconnect(roomId, playerUid);
-        
-        // Also try manual cleanup as backup
-        await manualRoomCleanup(roomId);
     } catch (error) {
         console.warn('⚠️ Failed to handle voluntary exit:', error);
     }
@@ -182,14 +180,14 @@ export async function markVoluntaryExit(roomId: string, playerUid: string) {
 export async function manualRoomCleanup(roomId: string) {
     try {
         const roomRef = doc(db, 'rooms', roomId);
-        const roomSnap = await getDocs(query(collection(db, 'rooms'), where('__name__', '==', roomId)));
+        const roomSnap = await getDoc(roomRef);
         
-        if (roomSnap.empty) {
+        if (!roomSnap.exists()) {
             console.log(`🗑️ Room ${roomId} already deleted`);
             return;
         }
         
-        const roomData = roomSnap.docs[0].data() as GameRoom;
+        const roomData = roomSnap.data() as GameRoom;
         const humanPlayers = roomData.players.filter(p => p.isHuman);
         
         console.log(`🔍 Room ${roomId} has ${humanPlayers.length} human players`);
@@ -315,6 +313,10 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                         name: `بوت ${playerIndex + 1}`
                     };
                     flashMessage = flashMessage || `تم استبدال اللاعب الذي خرج ببوت`;
+                } else {
+                    // For voluntary exit, just remove the player from arrays
+                    updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
+                    flashMessage = flashMessage || `غادر اللاعب`;
                 }
 
                 transaction.update(roomRef, {

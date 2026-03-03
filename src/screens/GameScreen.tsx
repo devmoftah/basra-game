@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
     GameState, Card, CaptureOption,
     SUIT_SYMBOL, SUIT_COLOR, cardDisplay, Suit, GameRoom,
@@ -39,7 +39,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const [countdown, setCountdown] = useState<number>(0);
     const [previewMove, setPreviewMove] = useState<PendingMove | null>(null);
 
-    const isHost = room?.adminId === auth.currentUser?.uid;
+    const isHost = useMemo(() => room?.adminId === auth.currentUser?.uid, [room?.adminId, auth.currentUser?.uid]);
     const isProcessingMove = useRef(false);
     const isScoringInProgress = useRef(false);
     const roomIdRef = useRef<string | null>(null);
