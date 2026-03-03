@@ -11,7 +11,7 @@ import {
     runTransaction
 } from 'firebase/firestore';
 import { getDatabase, ref, onDisconnect as rtdbOnDisconnect } from 'firebase/database';
-import { GameRoom, PlayerState } from './basraTypes';
+import { GameRoom } from './basraTypes';
 import { createInitialState, dealNewRound } from './basraEngine';
 
 export async function findOrCreateRoom(userName: string, skinId: string): Promise<string> {
@@ -19,147 +19,121 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
     if (!user) throw new Error("User not authenticated");
 
     const roomsRef = collection(db, 'rooms');
+
+    // 1. First, try to find an existing room
     const q = query(
         roomsRef,
         where('status', '==', 'waiting'),
-        limit(10)
+        limit(1) // Just grab one candidate
     );
     const querySnapshot = await getDocs(q);
 
-    let roomDoc = null;
-    if (!querySnapshot.empty) {
-        // Find a room that isn't full
-        roomDoc = querySnapshot.docs.find(d => {
-            const data = d.data() as GameRoom;
-            return data.playerCount < 4;
-        });
+    if (querySnapshot.empty) {
+        // No room found, create a new one
+        return await createRoom(user.uid, userName, skinId);
     }
 
-    // If no waiting room available, create new room immediately
-    if (!roomDoc) {
-        // Create new room
-        const initialState = createInitialState(skinId);
-        const newRoom: GameRoom = {
-            id: '', // Firestore will assign this
-            status: 'waiting',
-            players: [{
-                id: 0,
+    const targetRoomRef = querySnapshot.docs[0].ref;
+
+    // 2. Use a transaction to safely join
+    try {
+        const result = await runTransaction(db, async (transaction) => {
+            const roomSnap = await transaction.get(targetRoomRef);
+            if (!roomSnap.exists()) return { retry: true };
+
+            const roomData = roomSnap.data() as GameRoom;
+
+            // Already in this room?
+            if (roomData.playerUids.includes(user.uid)) {
+                return { roomId: roomSnap.id };
+            }
+
+            // Room full in the meantime?
+            if (roomData.playerCount >= 4 || roomData.status !== 'waiting') {
+                return { retry: true };
+            }
+
+            const nextSeat = roomData.playerCount;
+            const newPlayers = [...roomData.players];
+
+            // Replace bot with human
+            newPlayers[nextSeat] = {
+                ...newPlayers[nextSeat],
                 uid: user.uid,
                 name: userName,
-                hand: [],
-                captured: [],
-                basraPoints: 0,
                 isHuman: true,
-                team: 0,
                 activeSkinId: skinId
-            }],
-            playerCount: 1,
-            playerUids: [user.uid],
-            adminId: user.uid,
-            gameState: initialState,
-            createdAt: Date.now().toString()
-        };
+            };
 
-        const docRef = await addDoc(roomsRef, newRoom);
-        
-        // Set up disconnect handler for the host
-        await setupPlayerDisconnectHandler(docRef.id, user.uid);
-        
-        return docRef.id;
-    }
+            const updatedPlayerUids = [...roomData.playerUids, user.uid];
 
-    if (roomDoc) {
-        // Join existing room
-        const roomData = roomDoc.data() as GameRoom;
+            transaction.update(targetRoomRef, {
+                players: newPlayers,
+                playerCount: updatedPlayerUids.length,
+                playerUids: updatedPlayerUids,
+                'gameState.players': newPlayers
+            });
 
-        // Allow returning to same room if it's still waiting
-        if (roomData.playerUids.includes(user.uid)) {
-            if (roomData.status === 'waiting') {
-                // Find the player's existing seat and return the room
-                const existingPlayer = roomData.players.find(p => p.uid === user.uid);
-                if (existingPlayer) {
-                    return roomDoc.id; // Return to waiting room with existing seat
-                }
-            } else {
-                return roomDoc.id; // Already in this room (playing)
-            }
-        }
-
-        const newPlayers = [...roomData.players];
-        const nextSeat = roomData.playerCount;
-
-        const newPlayer: PlayerState = {
-            id: nextSeat,
-            uid: user.uid,
-            name: userName,
-            hand: [],
-            captured: [],
-            basraPoints: 0,
-            isHuman: true,
-            team: (nextSeat === 0 || nextSeat === 2) ? 0 : 1,
-            activeSkinId: skinId
-        };
-
-        newPlayers[nextSeat] = newPlayer;
-
-        await updateDoc(roomDoc.ref, {
-            players: newPlayers,
-            playerCount: nextSeat + 1,
-            playerUids: [...roomData.playerUids, user.uid],
-            'gameState.players': newPlayers
+            return { roomId: roomSnap.id };
         });
 
-        // Set up disconnect handler for the new player
-        await setupPlayerDisconnectHandler(roomDoc.id, user.uid);
+        if (result.retry) {
+            // Room became full or invalid, try once more (will likely create new)
+            return findOrCreateRoom(userName, skinId);
+        }
 
-        return roomDoc.id;
-    } else {
-        // Create new room
-        const initialState = createInitialState(skinId);
-        const hostPlayer: PlayerState = {
-            id: 0,
-            uid: user.uid,
-            name: userName,
-            hand: [],
-            captured: [],
-            basraPoints: 0,
-            isHuman: true,
-            team: 0,
-            activeSkinId: skinId
-        };
-
-        const players = [hostPlayer, ...initialState.players.slice(1).map(p => ({ ...p, isHuman: false }))];
-
-        const newRoom: Partial<GameRoom> = {
-            status: 'waiting',
-            adminId: user.uid,
-            playerCount: 1,
-            playerUids: [user.uid],
-            players: players,
-            gameState: { ...initialState, players },
-            createdAt: new Date().toISOString()
-        };
-
-        const docRef = await addDoc(roomsRef, newRoom);
-        
-        // Set up disconnect handler for the host
-        await setupPlayerDisconnectHandler(docRef.id, user.uid);
-        
-        return docRef.id;
+        if (result.roomId) {
+            await setupPlayerDisconnectHandler(result.roomId, user.uid);
+            return result.roomId;
+        }
+        throw new Error("Failed to join room");
+    } catch (e) {
+        console.error("Transaction failed, creating new room:", e);
+        return await createRoom(user.uid, userName, skinId);
     }
+}
+
+async function createRoom(uid: string, userName: string, skinId: string): Promise<string> {
+    const roomsRef = collection(db, 'rooms');
+    const initialState = createInitialState(skinId);
+
+    // Setup initial players (1 human host + 3 bots)
+    const players = [...initialState.players];
+    players[0] = {
+        ...players[0],
+        uid: uid,
+        name: userName,
+        activeSkinId: skinId,
+        isHuman: true
+    };
+    initialState.players = players;
+
+    const newRoomData: any = {
+        status: 'waiting',
+        adminId: uid,
+        playerCount: 1,
+        playerUids: [uid],
+        players: players,
+        gameState: initialState,
+        createdAt: new Date().toISOString()
+    };
+
+    const docRef = await addDoc(roomsRef, newRoomData);
+    await setupPlayerDisconnectHandler(docRef.id, uid);
+    return docRef.id;
 }
 
 export async function startGameInRoom(roomId: string) {
     const roomRef = doc(db, 'rooms', roomId);
-    const s = await getDocs(query(collection(db, 'rooms'), where('__name__', '==', roomId)));
-    if (s.empty) return;
-    const roomSnap = s.docs[0];
-    const roomData = roomSnap.data() as GameRoom;
+    // Use transaction or simple update if we assume host is the only one starting
+    const roomSnap = await getDocs(query(collection(db, 'rooms'), where('__name__', '==', roomId)));
+    if (roomSnap.empty) return;
+    const roomData = roomSnap.docs[0].data() as GameRoom;
 
     // Deal cards using the engine
     let nextGs = dealNewRound(roomData.gameState);
-    
-    // Set initial deadline based on first player type
+
+    // Set initial deadline
     const firstPlayer = nextGs.players[nextGs.currentPlayer];
     const initialDeadline = firstPlayer?.isHuman ? 15000 : 3000;
     nextGs.turnDeadline = Date.now() + initialDeadline;
@@ -175,7 +149,7 @@ export async function startGameInRoom(roomId: string) {
 export async function setupPlayerDisconnectHandler(roomId: string, playerUid: string) {
     const rtdb = getDatabase();
     const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
-    
+
     // Set up onDisconnect with voluntary exit flag
     const disconnectHandler = rtdbOnDisconnect(disconnectRef);
     await disconnectHandler.set({
@@ -200,17 +174,17 @@ export async function markVoluntaryExit(roomId: string, playerUid: string) {
 
 export async function replacePlayerWithBot(roomId: string, playerUid: string) {
     const roomRef = doc(db, 'rooms', roomId);
-    
+
     try {
         await runTransaction(db, async (transaction) => {
             const roomSnap = await transaction.get(roomRef);
             if (!roomSnap.exists()) return;
-            
+
             const roomData = roomSnap.data() as GameRoom;
             const playerIndex = roomData.players.findIndex(p => p.uid === playerUid);
-            
+
             if (playerIndex === -1) return; // Player not found
-            
+
             // Replace player with bot immediately
             const updatedPlayers = [...roomData.players];
             updatedPlayers[playerIndex] = {
@@ -219,10 +193,10 @@ export async function replacePlayerWithBot(roomId: string, playerUid: string) {
                 uid: `bot-${playerIndex}`,
                 name: `بوت ${playerIndex + 1}`
             };
-            
+
             // Update playerUids to remove exited player
             const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
-            
+
             transaction.update(roomRef, {
                 status: 'playing',
                 players: updatedPlayers,
@@ -239,25 +213,25 @@ export async function replacePlayerWithBot(roomId: string, playerUid: string) {
 
 export async function handlePlayerDisconnect(roomId: string, playerUid: string) {
     const roomRef = doc(db, 'rooms', roomId);
-    
+
     try {
         await runTransaction(db, async (transaction) => {
             const roomSnap = await transaction.get(roomRef);
             if (!roomSnap.exists()) return;
-            
+
             const roomData = roomSnap.data() as GameRoom;
             const playerIndex = roomData.players.findIndex(p => p.uid === playerUid);
-            
+
             if (playerIndex === -1) return; // Player not found
-            
+
             // For now, we'll implement a simple check:
             // If player is still connected to auth, assume it's a voluntary exit
             // If player is not connected, assume it's a real disconnect
             const isVoluntaryExit = auth.currentUser?.uid === playerUid;
-            
+
             // Count human players remaining
             const humanPlayers = roomData.players.filter(p => p.isHuman && p.uid !== playerUid);
-            
+
             if (humanPlayers.length === 0) {
                 // Close the room if no human players left
                 transaction.update(roomRef, {
@@ -277,10 +251,10 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     uid: undefined,
                     name: `بوت ${playerIndex + 1}`
                 };
-                
+
                 // Update playerUids to remove disconnected player
                 const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
-                
+
                 transaction.update(roomRef, {
                     players: updatedPlayers,
                     playerCount: updatedPlayerUids.length,
