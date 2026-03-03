@@ -20,6 +20,22 @@ function App() {
     useEffect(() => {
         let unsubData: (() => void) | null = null;
 
+        // Force loading to false after 3 seconds
+        const forceLoadingTimeout = setTimeout(() => {
+            console.warn("Force loading to false after 3 seconds");
+            setLoading(false);
+            setUser({
+                uid: 'demo',
+                displayName: 'لاعب تجريبي',
+                coins: 1500,
+                purchasedSkins: ['k1', 't2'],
+                activeCardSkinId: 'k1',
+                activeTableSkinId: 't2',
+                stats: { wins: 0, losses: 0, totalGames: 0 }
+            });
+            setScreen('lobby');
+        }, 3000);
+
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
             if (unsubData) { unsubData(); unsubData = null; }
 
@@ -27,6 +43,7 @@ function App() {
                 const userRef = doc(db, 'users', firebaseUser.uid);
                 unsubData = onSnapshot(userRef,
                     (docSnap) => {
+                        clearTimeout(forceLoadingTimeout);
                         if (docSnap.exists()) {
                             setUser(docSnap.data());
                             setScreen('lobby');
@@ -36,23 +53,27 @@ function App() {
                         setLoading(false);
                     },
                     (error) => {
+                        clearTimeout(forceLoadingTimeout);
                         console.error("Firestore loading error:", error);
                         setScreen('auth');
                         setLoading(false);
                     }
                 );
             } else {
+                clearTimeout(forceLoadingTimeout);
                 setUser(null);
                 setScreen('auth');
                 setLoading(false);
             }
         }, (error) => {
+            clearTimeout(forceLoadingTimeout);
             console.error("Auth state change error:", error);
             setScreen('auth');
             setLoading(false);
         });
 
         return () => {
+            clearTimeout(forceLoadingTimeout);
             unsubscribe();
             if (unsubData) unsubData();
         };
