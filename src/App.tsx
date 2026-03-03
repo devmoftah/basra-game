@@ -63,6 +63,21 @@ function App() {
             <div className="app-loading">
                 <div className="loader"></div>
                 <span>جاري تحميل عالم البصرة...</span>
+                <button onClick={() => {
+                    setLoading(false);
+                    setUser({
+                        uid: 'demo',
+                        displayName: 'لاعب تجريبي',
+                        coins: 1500,
+                        purchasedSkins: ['k1', 't2'],
+                        activeCardSkinId: 'k1',
+                        activeTableSkinId: 't2',
+                        stats: { wins: 0, losses: 0, totalGames: 0 }
+                    });
+                    setScreen('lobby');
+                }} style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                    دخول سريع (تجاوز التحميل)
+                </button>
             </div>
         );
     }
