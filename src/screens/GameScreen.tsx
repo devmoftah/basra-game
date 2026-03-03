@@ -57,6 +57,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         const roomWithId = { ...data, id: s.id };
                         setRoom(roomWithId);
                         setGs(roomWithId.gameState);
+                        setLoadingRoom(false);
 
                         // Handle room closure or player changes
                         if (data.status === 'finished' && data.gameState.flashMessage?.includes('إغلاق الطاولة')) {
