@@ -62,6 +62,16 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         };
     }, []); // Empty dependency array - only run on unmount
 
+    // Force loadingRoom to false after 5 seconds
+    useEffect(() => {
+        const loadingTimeout = setTimeout(() => {
+            console.warn("Force loadingRoom to false after 5 seconds");
+            setLoadingRoom(false);
+        }, 5000);
+
+        return () => clearTimeout(loadingTimeout);
+    }, []);
+
     // Join Room logic
     useEffect(() => {
         let unsub: any;
