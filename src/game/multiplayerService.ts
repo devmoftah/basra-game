@@ -47,7 +47,11 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
 
             // Already in this room?
             if (roomData.playerUids.includes(user.uid)) {
-                return { roomId: roomSnap.id };
+                // Check if player is in their correct seat
+                const existingPlayerIndex = roomData.players.findIndex(p => p.uid === user.uid);
+                if (existingPlayerIndex !== -1) {
+                    return { roomId: roomSnap.id };
+                }
             }
 
             // Room full in the meantime?
