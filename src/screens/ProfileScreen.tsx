@@ -127,7 +127,7 @@ export default function ProfileScreen({ onBack }: Props) {
                                         <img 
                                             src={`https://api.dicebear.com/7.x/${style}/svg?seed=${avatarSeed}`}
                                             alt={style}
-                                            className="avatar-small"
+                                            className="ps-avatar-small"
                                         />
                                     </button>
                                 ))}
