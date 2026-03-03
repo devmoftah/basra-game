@@ -17,39 +17,24 @@ function App() {
     const [screen, setScreen] = useState<Screen>('auth');
     const [loading, setLoading] = useState(true);
 
-    if (!firebaseReady) {
-        return (
-            <div className="app-loading">
-                <span>تعذّر تشغيل Firebase</span>
-                <small style={{ fontSize: '12px', opacity: 0.85, marginTop: '10px', maxWidth: 420, textAlign: 'center' }}>
-                    السبب: مفتاح API غير صالح أو إعدادات Firebase غير موجودة.
-                    {' '}
-                    تأكد من ضبط متغيرات البيئة VITE_FIREBASE_* في ملف .env ثم أعد تشغيل المشروع.
-                </small>
-                <small style={{ fontSize: '11px', opacity: 0.7, marginTop: '10px', maxWidth: 520, textAlign: 'center' }}>
-                    {String((firebaseInitError as any)?.message || firebaseInitError || '')}
-                </small>
-                <button
-                    className="demo-mode-btn"
-                    onClick={() => {
-                        setUser({
-                            uid: 'demo',
-                            displayName: 'لاعب تجريبي',
-                            coins: 1500,
-                            purchasedSkins: ['k1', 't2'],
-                            activeCardSkinId: 'k1',
-                            activeTableSkinId: 't2',
-                            stats: { wins: 0, losses: 0, totalGames: 0 }
-                        });
-                        setScreen('lobby');
-                        setLoading(false);
-                    }}
-                >
-                    دخول تجريبي (بدون Firebase)
-                </button>
-            </div>
-        );
-    }
+    useEffect(() => {
+        if (!firebaseReady && import.meta.env.PROD) {
+            const t = setTimeout(() => {
+                setUser({
+                    uid: 'demo',
+                    displayName: 'لاعب تجريبي',
+                    coins: 1500,
+                    purchasedSkins: ['k1', 't2'],
+                    activeCardSkinId: 'k1',
+                    activeTableSkinId: 't2',
+                    stats: { wins: 0, losses: 0, totalGames: 0 }
+                });
+                setScreen('lobby');
+                setLoading(false);
+            }, 800);
+            return () => clearTimeout(t);
+        }
+    }, []);
 
     useEffect(() => {
         if (!loading && !user && screen !== 'auth') {
@@ -83,7 +68,7 @@ function App() {
             setLoading(false);
         }, 4000);
 
-        if (!auth || !db) {
+        if (!firebaseReady || !auth || !db) {
             setLoading(false);
             setScreen('auth');
             return;
@@ -160,6 +145,40 @@ function App() {
                     }}
                 >
                     دخول تجريبي (بدون انترنت)
+                </button>
+            </div>
+        );
+    }
+
+    if (!firebaseReady && !user) {
+        return (
+            <div className="app-loading">
+                <span>تعذّر تشغيل Firebase</span>
+                <small style={{ fontSize: '12px', opacity: 0.85, marginTop: '10px', maxWidth: 420, textAlign: 'center' }}>
+                    السبب: مفتاح API غير صالح أو إعدادات Firebase غير موجودة.
+                    {' '}
+                    تأكد من ضبط متغيرات البيئة VITE_FIREBASE_* في ملف .env ثم أعد تشغيل المشروع.
+                </small>
+                <small style={{ fontSize: '11px', opacity: 0.7, marginTop: '10px', maxWidth: 520, textAlign: 'center' }}>
+                    {String((firebaseInitError as any)?.message || firebaseInitError || '')}
+                </small>
+                <button
+                    className="demo-mode-btn"
+                    onClick={() => {
+                        setUser({
+                            uid: 'demo',
+                            displayName: 'لاعب تجريبي',
+                            coins: 1500,
+                            purchasedSkins: ['k1', 't2'],
+                            activeCardSkinId: 'k1',
+                            activeTableSkinId: 't2',
+                            stats: { wins: 0, losses: 0, totalGames: 0 }
+                        });
+                        setScreen('lobby');
+                        setLoading(false);
+                    }}
+                >
+                    دخول تجريبي (بدون Firebase)
                 </button>
             </div>
         );
