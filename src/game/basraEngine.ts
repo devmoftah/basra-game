@@ -2,6 +2,7 @@ import {
     Card, CaptureOption, GameState, PlayerState, Suit,
     isDiamondSeven, isJack,
 } from './basraTypes';
+import { db, doc, updateDoc, deleteDoc } from '../firebase';
 
 // ── Deck (44 cards: A to J only) ──
 export function createDeck(): Card[] {
@@ -241,7 +242,7 @@ function dealNextBatch(state: GameState): GameState {
     return { ...state, deck, players };
 }
 
-export function applyMove(state: GameState, playerIndex: number, card: Card, capture: CaptureOption | null): GameState {
+export function applyMove(state: GameState, playerIndex: number, card: Card, capture: CaptureOption | null, roomId?: string): GameState {
     const players = state.players.map(p => ({ ...p, hand: [...p.hand], captured: [...p.captured] }));
     const player = players[playerIndex];
     let tableCards = [...state.tableCards];
@@ -342,7 +343,7 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
                 flashMessage = `${lastPlayer.name} يقش الأرض! يأخذ ${newState.tableCards.length} كروت 🌍`;
                 newState.tableCards = [];
             }
-            newState = processScore(newState);
+            newState = processScore(newState, roomId);
         }
     }
 
@@ -352,7 +353,7 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
     return newState;
 }
 
-export function processScore(state: GameState): GameState {
+export function processScore(state: GameState, roomId?: string): GameState {
     const [r0, r1] = calcRoundScores(state.players);
     let totalScores: [number, number] = [state.totalScores[0] + r0, state.totalScores[1] + r1];
     let cz: [number, number] = [...state.consecutiveZeros] as [number, number];
@@ -367,10 +368,39 @@ export function processScore(state: GameState): GameState {
     if (cz[0] >= 3) winner = 1; else if (cz[1] >= 3) winner = 0;
     else if (totalScores[0] >= 250) winner = 0; else if (totalScores[1] >= 250) winner = 1;
 
-    return {
+    const newState = {
         ...state, totalScores, consecutiveZeros: cz, winner,
         phase: winner !== null ? 'gameEnd' : 'roundEndScored',
         roundNumber: state.roundNumber + 1,
         lastRoundScores: [r0, r1],
     } as any;
+
+    // Auto-cleanup: if game ended, clean up the room
+    if (winner !== null && roomId) {
+        setTimeout(async () => {
+            try {
+                const roomRef = doc(db, 'rooms', roomId);
+                await updateDoc(roomRef, {
+                    status: 'finished',
+                    'gameState.phase': 'gameEnd',
+                    'gameState.winner': winner,
+                    'gameState.flashMessage': `انتهت اللعبة! الفريق ${winner === 0 ? 'الأحمر' : 'الأزرق'} فاز! 🏆`
+                });
+                
+                // Delete room after 30 seconds to allow cleanup
+                setTimeout(async () => {
+                    try {
+                        await deleteDoc(roomRef);
+                        console.log(`🗑️ Room ${roomId} deleted automatically`);
+                    } catch (error) {
+                        console.error('Error deleting room:', error);
+                    }
+                }, 30000);
+            } catch (error) {
+                console.error('Error updating room:', error);
+            }
+        }, 2000);
+    }
+
+    return newState;
 }

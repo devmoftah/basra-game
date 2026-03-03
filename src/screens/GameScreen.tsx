@@ -121,7 +121,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
 
         setTimeout(async () => {
             try {
-                const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture);
+                const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture, room?.id);
                 
                 // Set different deadlines based on player type
                 const currentPlayerObj = nextGs.players[nextGs.currentPlayer];
