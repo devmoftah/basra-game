@@ -68,18 +68,84 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         return () => unsub && unsub();
     }, []);
 
-    // 7s Timer Logic
+    // ── Always-fresh refs to avoid stale closures in async callbacks ──
+    const gsRef = useRef<GameState | null>(null);
+    const roomRef = useRef<typeof room>(null);
+    useEffect(() => { gsRef.current = gs; }, [gs]);
+    useEffect(() => { roomRef.current = room; }, [room]);
+
+    // ── Apply a move to Firestore ──────────────────────────────────────
+    const performMoveLocal = (card: Card, capture: CaptureOption | null, forcedGs?: GameState, forcedRoom?: typeof room) => {
+        const curGs = forcedGs || gsRef.current;
+        const curRoom = forcedRoom || roomRef.current;
+        if (!curGs || !curRoom || isProcessingMove.current) return;
+        isProcessingMove.current = true;
+
+        setPreviewMove({ card, playerIndex: curGs.currentPlayer, capture });
+
+        setTimeout(async () => {
+            try {
+                const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture);
+                nextGs.turnDeadline = Date.now() + 8000;
+                await updateDoc(doc(db, 'rooms', curRoom.id), { gameState: nextGs });
+            } catch (e) {
+                console.error('Move failed:', e);
+            } finally {
+                setPreviewMove(null);
+                setSelectedCard(null);
+                setValidCapture(null);
+                setHighlightIds(new Set());
+                isProcessingMove.current = false;
+            }
+        }, 600);
+    };
+
+    // ── Bot auto-play: fires 1.5s after it becomes a bot's turn ───────
+    useEffect(() => {
+        if (!gs || !room || !isHost || gs.phase !== 'playing') return;
+        const currentP = gs.players[gs.currentPlayer];
+        if (!currentP || currentP.isHuman) return; // Only for bots
+
+        const t = setTimeout(() => {
+            const latestGs = gsRef.current;
+            const latestRoom = roomRef.current;
+            if (!latestGs || !latestRoom || isProcessingMove.current) return;
+            if (latestGs.phase !== 'playing') return;
+            if (latestGs.currentPlayer !== gs.currentPlayer) return; // Turn already moved on
+
+            const p = latestGs.players[latestGs.currentPlayer];
+            if (!p || p.isHuman || p.hand.length === 0) return;
+
+            const randomCard = p.hand[Math.floor(Math.random() * p.hand.length)];
+            const captures = findCaptures(randomCard, latestGs.tableCards);
+            const bestCap = captures.length > 0 ? captures[0] : null;
+            performMoveLocal(randomCard, bestCap, latestGs, latestRoom);
+        }, 1500);
+
+        return () => clearTimeout(t);
+    }, [gs?.currentPlayer, gs?.phase, room?.status, isHost]);
+
+    // ── Timer: countdown display + human turn timeout ──────────────────
     useEffect(() => {
         if (!gs || room?.status !== 'playing' || gs.phase !== 'playing') return;
 
         const timer = setInterval(() => {
-            const now = Date.now();
-            if (gs.turnDeadline) {
-                const diff = Math.max(0, Math.ceil((gs.turnDeadline - now) / 1000));
-                setTurnTimer(diff);
+            const latestGs = gsRef.current;
+            if (!latestGs?.turnDeadline) return;
+            const diff = Math.max(0, Math.ceil((latestGs.turnDeadline - Date.now()) / 1000));
+            setTurnTimer(diff);
 
-                if (diff === 0 && !isProcessingMove.current) {
-                    handleTimeout();
+            if (diff === 0 && !isProcessingMove.current) {
+                const myIdx = latestGs.players.findIndex(p => p.uid === auth.currentUser?.uid);
+                const effectiveMyIdx = myIdx >= 0 ? myIdx : 0;
+                // Only auto-play for human timeout (bots are handled by bot effect above)
+                if (latestGs.currentPlayer === effectiveMyIdx) {
+                    const p = latestGs.players[effectiveMyIdx];
+                    if (!p || p.hand.length === 0) return;
+                    const randomCard = p.hand[Math.floor(Math.random() * p.hand.length)];
+                    const captures = findCaptures(randomCard, latestGs.tableCards);
+                    const bestCap = captures.length > 0 ? captures[0] : null;
+                    performMoveLocal(randomCard, bestCap, latestGs, roomRef.current);
                 }
             }
         }, 1000);
@@ -87,23 +153,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         return () => clearInterval(timer);
     }, [gs?.currentPlayer, gs?.turnDeadline, room?.status]);
 
-    const handleTimeout = async () => {
-        if (!gs || !room) return;
-        const myIndex = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
-        const isMyTurn = gs.currentPlayer === myIndex;
-
-        if (isMyTurn || (isHost && !gs.players[gs.currentPlayer].isHuman)) {
-            const p = gs.players[gs.currentPlayer];
-            if (!p.hand.length) return;
-            const randomCard = p.hand[Math.floor(Math.random() * p.hand.length)];
-            const captures = findCaptures(randomCard, gs.tableCards);
-            const bestCap = captures.length > 0 ? captures[0] : null;
-
-            await performMoveLocal(randomCard, bestCap);
-        }
-    };
-
-    // Flash message clear
+    // ── Flash message clear ────────────────────────────────────────────
     useEffect(() => {
         if (!gs?.flashMessage) return;
         const t = setTimeout(() => {
@@ -143,41 +193,22 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         }
     }, [gs?.phase, isHost]);
 
-    const performMoveLocal = async (card: Card, capture: CaptureOption | null) => {
-        if (!gs || !room || isProcessingMove.current) return;
-        isProcessingMove.current = true;
-
-        setPreviewMove({ card, playerIndex: gs.currentPlayer, capture });
-
-        setTimeout(async () => {
-            const nextGs = applyMove(gs, gs.currentPlayer, card, capture);
-            nextGs.turnDeadline = Date.now() + 8000;
-
-            await updateDoc(doc(db, 'rooms', room.id), {
-                gameState: nextGs
-            });
-
-            setPreviewMove(null);
-            setSelectedCard(null);
-            setValidCapture(null);
-            setHighlightIds(new Set());
-            isProcessingMove.current = false;
-        }, 600);
-    };
 
     const handleSelect = (e: React.MouseEvent, card: Card) => {
         e.stopPropagation();
-        if (!gs || gs.phase !== 'playing' || previewMove) return;
+        const latestGs = gsRef.current;
+        if (!latestGs || latestGs.phase !== 'playing' || previewMove) return;
 
-        const myIndex = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
-        if (gs.currentPlayer !== myIndex) return;
+        const myIdx = latestGs.players.findIndex(p => p.uid === auth.currentUser?.uid);
+        const effectiveMyIdx = myIdx >= 0 ? myIdx : 0;
+        if (latestGs.currentPlayer !== effectiveMyIdx) return;
 
         if (selectedCard?.id === card.id) {
-            performMoveLocal(selectedCard, validCapture);
+            performMoveLocal(selectedCard, validCapture, latestGs, roomRef.current);
             return;
         }
         setSelectedCard(card);
-        const caps = findCaptures(card, gs.tableCards);
+        const caps = findCaptures(card, latestGs.tableCards);
         if (caps.length > 0) {
             setValidCapture(caps[0]);
             setHighlightIds(new Set(caps[0].cards.map(c => c.id)));
