@@ -101,7 +101,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         setTimeout(async () => {
             try {
                 const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture);
-                nextGs.turnDeadline = Date.now() + 8000;
+                
+                // Set different deadlines based on player type
+                const currentPlayerObj = nextGs.players[nextGs.currentPlayer];
+                const deadline = currentPlayerObj?.isHuman ? 15000 : 3000; // 15s for human, 3s for bot
+                nextGs.turnDeadline = Date.now() + deadline;
+                
                 await updateDoc(doc(db, 'rooms', curRoom.id), { gameState: nextGs });
             } catch (e) {
                 console.error('Move failed:', e);
@@ -135,7 +140,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
             const captures = findCaptures(randomCard, latestGs.tableCards);
             const bestCap = captures.length > 0 ? captures[0] : null;
             performMoveLocal(randomCard, bestCap, latestGs, latestRoom);
-        }, 1500);
+        }, 3000); // Bot plays after 3 seconds
 
         return () => clearTimeout(t);
     }, [gs?.currentPlayer, gs?.phase, room?.status, isHost]);
@@ -197,7 +202,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         clearInterval(timer);
                         isScoringInProgress.current = false;
                         const dealtGs = dealNewRound(gs);
-                        dealtGs.turnDeadline = Date.now() + 8000;
+                        
+                        // Set deadline based on first player of new round
+                        const firstPlayer = dealtGs.players[dealtGs.currentPlayer];
+                        const deadline = firstPlayer?.isHuman ? 15000 : 3000;
+                        dealtGs.turnDeadline = Date.now() + deadline;
+                        
                         updateDoc(doc(db, 'rooms', room.id), { gameState: dealtGs });
                         return 0;
                     }

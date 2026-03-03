@@ -114,7 +114,11 @@ export async function startGameInRoom(roomId: string) {
 
     // Deal cards using the engine
     let nextGs = dealNewRound(roomData.gameState);
-    nextGs.turnDeadline = Date.now() + 8000;
+    
+    // Set initial deadline based on first player type
+    const firstPlayer = nextGs.players[nextGs.currentPlayer];
+    const initialDeadline = firstPlayer?.isHuman ? 15000 : 3000;
+    nextGs.turnDeadline = Date.now() + initialDeadline;
 
     await updateDoc(roomRef, {
         status: 'playing',
