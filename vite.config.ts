@@ -2,17 +2,14 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/** @type {import('vite').UserConfig} */
 export default defineConfig({
     base: '/basra-game/',
     plugins: [
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            injectRegister: 'auto',
             includeAssets: ['favicon.ico', 'assets/skins/cards/card_back_darnes.png'],
-            workbox: {
-                globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-            },
             manifest: {
                 name: 'Basra Club - لعبة البصرة',
                 short_name: 'Basra',
@@ -35,7 +32,14 @@ export default defineConfig({
                         purpose: 'any'
                     }
                 ]
+            },
+            workbox: {
+                globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
             }
         })
     ],
+    build: {
+        outDir: 'dist',
+        assetsDir: 'assets',
+    }
 })
