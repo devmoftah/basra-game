@@ -263,7 +263,7 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
                 });
                 
-                // Schedule room deletion after 30 seconds
+                // Schedule room deletion after 5 seconds
                 setTimeout(async () => {
                     try {
                         await deleteDoc(roomRef);
@@ -271,7 +271,7 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     } catch (error) {
                         console.error('Error deleting room:', error);
                     }
-                }, 30000);
+                }, 5000);
             } else {
                 let updatedPlayers = [...roomData.players];
                 let updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);

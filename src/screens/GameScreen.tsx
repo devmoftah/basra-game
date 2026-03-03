@@ -315,7 +315,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         ) : (
                             <div className="wr-msg">في انتظار الآدمن لبدء اللعبة...</div>
                         )}
-                        <button className="gtb-btn exit-btn" onClick={onExitGame}>خروج</button>
+                        <button className="gtb-btn exit-btn" onClick={handleExit}>خروج</button>
                     </div>
                 </div>
             </div>
