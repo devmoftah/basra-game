@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { updateProfile } from 'firebase/auth';
 import './ProfileScreen.css';
 
 interface Props {
@@ -58,7 +59,12 @@ export default function ProfileScreen({ onBack }: Props) {
         setMessage('');
 
         try {
-            // Update display name in Firestore using setDoc with merge
+            // Update Firebase Auth profile first
+            await updateProfile(auth.currentUser, {
+                displayName: displayName.trim()
+            });
+
+            // Then update additional data in Firestore
             const userDoc = doc(db, 'users', auth.currentUser.uid);
             await setDoc(userDoc, {
                 displayName: displayName.trim(),
