@@ -224,14 +224,14 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
     const roomRef = doc(db, 'rooms', roomId);
 
     try {
-        await runTransaction(db, async (transaction) => {
+        const shouldDeleteRoom = await runTransaction(db, async (transaction) => {
             const roomSnap = await transaction.get(roomRef);
-            if (!roomSnap.exists()) return;
+            if (!roomSnap.exists()) return false;
 
             const roomData = roomSnap.data() as GameRoom;
             const playerIndex = roomData.players.findIndex(p => p.uid === playerUid);
 
-            if (playerIndex === -1) return; // Player not found
+            if (playerIndex === -1) return false; // Player not found
 
             // For now, we'll implement a simple check:
             // If player is still connected to auth, assume it's a voluntary exit
@@ -253,33 +253,7 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
                 });
                 
-                // Delete room immediately after transaction
-                setTimeout(async () => {
-                    try {
-                        await deleteDoc(roomRef);
-                        console.log(`🗑️ Room ${roomId} deleted immediately - no human players left`);
-                        
-                        // Also try to delete from RTDB if it exists
-                        try {
-                            const rtdbRef = ref(rtdb, `disconnects/${roomId}`);
-                            await remove(rtdbRef);
-                            console.log(`🗑️ RTDB data for room ${roomId} also deleted`);
-                        } catch (rtdbError) {
-                            console.warn('RTDB deletion failed (this is ok):', rtdbError);
-                        }
-                    } catch (error) {
-                        console.error('Error deleting room:', error);
-                        // Try one more time after 2 seconds
-                        setTimeout(async () => {
-                            try {
-                                await deleteDoc(roomRef);
-                                console.log(`🗑️ Room ${roomId} deleted on retry`);
-                            } catch (retryError) {
-                                console.error('Room deletion failed on retry:', retryError);
-                            }
-                        }, 2000);
-                    }
-                }, 1000);
+                return true; // Signal that room should be deleted
             } else {
                 let updatedPlayers = [...roomData.players];
                 let updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
@@ -314,11 +288,41 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.players': updatedPlayers,
                     'gameState.flashMessage': flashMessage
                 });
+                
+                return false; // Don't delete room
             }
-            // If it's a voluntary exit, don't replace the player - just remove them
         });
+        
+        // If we closed the room, delete it immediately
+        if (shouldDeleteRoom) {
+            setTimeout(async () => {
+                try {
+                    await deleteDoc(roomRef);
+                    console.log(`🗑️ Room ${roomId} deleted immediately - no human players left`);
+                    
+                    // Also try to delete from RTDB if it exists
+                    try {
+                        const rtdbRef = ref(rtdb, `disconnects/${roomId}`);
+                        await remove(rtdbRef);
+                        console.log(`🗑️ RTDB data for room ${roomId} also deleted`);
+                    } catch (rtdbError) {
+                        console.warn('RTDB deletion failed (this is ok):', rtdbError);
+                    }
+                } catch (error) {
+                    console.error('Error deleting room:', error);
+                    // Try one more time after 2 seconds
+                    setTimeout(async () => {
+                        try {
+                            await deleteDoc(roomRef);
+                            console.log(`🗑️ Room ${roomId} deleted on retry`);
+                        } catch (retryError) {
+                            console.error('Room deletion failed on retry:', retryError);
+                        }
+                    }, 2000);
+                }
+            }, 500);
+        }
     } catch (error) {
         console.error('Error handling player disconnect:', error);
     }
 }
-
