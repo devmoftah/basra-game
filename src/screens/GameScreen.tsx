@@ -59,11 +59,11 @@ export default function GameScreen({ onExitGame }: Props) {
                 capture: move.capture
             });
 
-            // 2. Wait 1.2s then apply
+            // 2. Wait 0.5s then apply
             setTimeout(() => {
                 setGs(prev => applyMove(prev, prev.currentPlayer, move.card, move.capture));
                 setPreviewMove(null);
-            }, 1200);
+            }, 500);
 
         }, 1000);
 
@@ -127,7 +127,7 @@ export default function GameScreen({ onExitGame }: Props) {
             setGs(prev => applyMove(prev, 0, moveCard, moveCap));
             setPreviewMove(null);
             setSelectedCard(null); setValidCapture(null); setHighlightIds(new Set());
-        }, 800);
+        }, 500);
     };
 
     const human = gs.players[0];
