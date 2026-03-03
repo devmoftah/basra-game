@@ -31,8 +31,9 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
                 email: user.email,
                 displayName: user.displayName || 'لاعب بصرة',
                 coins: 1500,
-                purchasedSkins: ['card_back_darnes.png'],
-                activeSkin: 'card_back_darnes.png',
+                purchasedSkins: ['k1', 't2'], // Start with basic skins
+                activeCardSkinId: 'k1',
+                activeTableSkinId: 't2',
                 stats: { wins: 0, losses: 0, totalGames: 0 },
                 createdAt: new Date().toISOString()
             };

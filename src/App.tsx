@@ -62,12 +62,20 @@ function App() {
                 />
             )}
 
-            {screen === 'game' && <GameScreen onExitGame={() => setScreen('lobby')} />}
+            {screen === 'game' && user && (
+                <GameScreen
+                    onExitGame={() => setScreen('lobby')}
+                    activeCardSkinId={user.activeCardSkinId}
+                    activeTableSkinId={user.activeTableSkinId}
+                />
+            )}
 
             {screen === 'store' && user && (
                 <StoreScreen
                     userCoins={user.coins}
                     purchasedSkins={user.purchasedSkins}
+                    activeCardSkin={user.activeCardSkinId}
+                    activeTableSkin={user.activeTableSkinId}
                     onBack={() => setScreen('lobby')}
                 />
             )}

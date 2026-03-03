@@ -7,9 +7,14 @@ import {
     createInitialState, dealNewRound, applyMove, processScore, findCaptures,
 } from '../game/basraEngine';
 import { aiChooseMove } from '../game/basraAI';
+import { STORE_ITEMS } from '../data/storeItems';
 import './GameScreen.css';
 
-interface Props { onExitGame: () => void; }
+interface Props {
+    onExitGame: () => void;
+    activeCardSkinId?: string;
+    activeTableSkinId?: string;
+}
 
 interface PendingMove {
     card: Card;
@@ -17,7 +22,9 @@ interface PendingMove {
     capture: CaptureOption | null;
 }
 
-export default function GameScreen({ onExitGame }: Props) {
+export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSkinId }: Props) {
+    const cardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId);
+    const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId);
     const [gs, setGs] = useState<GameState>(() => createInitialState());
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
     const [validCapture, setValidCapture] = useState<CaptureOption | null>(null);
@@ -167,16 +174,20 @@ export default function GameScreen({ onExitGame }: Props) {
             </header>
 
             <main className="game-table-area">
-                <Opponent player={gs.players[2]} pos="top" active={gs.currentPlayer === 2} activeSkin={gs.activeSkin} />
-                <Opponent player={gs.players[1]} pos="left" active={gs.currentPlayer === 1} activeSkin={gs.activeSkin} />
-                <Opponent player={gs.players[3]} pos="right" active={gs.currentPlayer === 3} activeSkin={gs.activeSkin} />
+                <Opponent player={gs.players[2]} pos="top" active={gs.currentPlayer === 2} cardSkin={cardSkin} />
+                <Opponent player={gs.players[1]} pos="left" active={gs.currentPlayer === 1} cardSkin={cardSkin} />
+                <Opponent player={gs.players[3]} pos="right" active={gs.currentPlayer === 3} cardSkin={cardSkin} />
 
-                <div className="sadu-table">
+                <div className="sadu-table" style={{
+                    background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined
+                }}>
                     <div className="sadu-border">
-                        <div className="felt-center">
+                        <div className="felt-center" style={{
+                            background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : undefined
+                        }}>
                             {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
                             {gs.tableCards.map((c, i) => (
-                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-24px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} activeSkin={gs.activeSkin} />
+                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-24px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} cardSkin={cardSkin} />
                             ))}
 
                             {/* THE PREVIEW CARD: Shown when someone makes a move */}
@@ -186,7 +197,7 @@ export default function GameScreen({ onExitGame }: Props) {
                                         card={previewMove.card}
                                         size="large"
                                         hl={true}
-                                        activeSkin={gs.activeSkin}
+                                        cardSkin={cardSkin}
                                         style={{
                                             boxShadow: '0 0 30px rgba(255,215,0,0.8)',
                                             animation: 'cardEntry 0.3s ease-out'
@@ -205,7 +216,7 @@ export default function GameScreen({ onExitGame }: Props) {
                         <CardComp
                             card={{ id: 'deck', suit: 'spades', value: 0 }}
                             style={{ isBack: true, transform: 'scale(0.5)' }}
-                            activeSkin={gs.activeSkin}
+                            cardSkin={cardSkin}
                         />
                     )}
                     <span>{gs.deck.length}</span>
@@ -218,7 +229,7 @@ export default function GameScreen({ onExitGame }: Props) {
                     {human.hand.map((c, i) => {
                         const rot = (i - (human.hand.length - 1) / 2) * 7;
                         const isSel = selectedCard?.id === c.id;
-                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} activeSkin={gs.activeSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
+                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={cardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
                     })}
                 </div>
             </div>
@@ -227,12 +238,12 @@ export default function GameScreen({ onExitGame }: Props) {
     );
 }
 
-function CardComp({ card, style, hl, onClick, size, activeSkin }: any) {
+function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
     const s = SUIT_SYMBOL[card.suit as Suit];
     const v = cardDisplay(card.value);
-
-    // If it's a card back (needed for opponents or deck, or can be toggled)
     const isBack = style?.isBack;
+
+    const isImageSkin = cardSkin?.image?.endsWith('.png');
 
     return (
         <div
@@ -240,7 +251,9 @@ function CardComp({ card, style, hl, onClick, size, activeSkin }: any) {
             style={{
                 color: SUIT_COLOR[card.suit as Suit],
                 ...style,
-                backgroundImage: isBack && activeSkin?.cardBack ? `url(${activeSkin.cardBack})` : 'none',
+                backgroundColor: isBack ? (cardSkin?.colors?.[0] || '#222') : '#fff',
+                borderColor: isBack ? (cardSkin?.colors?.[1] || '#444') : '#ddd',
+                backgroundImage: isBack && isImageSkin ? `url(${cardSkin.image})` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center'
             }}
@@ -253,11 +266,16 @@ function CardComp({ card, style, hl, onClick, size, activeSkin }: any) {
                     <div className="pc-br"><span className="pc-v">{v}</span><span className="pc-s">{s}</span></div>
                 </>
             )}
+            {isBack && !isImageSkin && (
+                <div className="card-back-pattern" style={{ border: `10px solid ${cardSkin?.colors?.[1] || '#444'}`, height: '100%', width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="card-back-logo" style={{ fontSize: '2rem', opacity: 0.3 }}>{cardSkin?.name?.charAt(0) || 'B'}</div>
+                </div>
+            )}
         </div>
     );
 }
 
-function Opponent({ player, pos, active, activeSkin }: any) {
+function Opponent({ player, pos, active, cardSkin }: any) {
     return (
         <div className={`player-slot ps-${pos} ${active ? 'ps-active' : ''}`}>
             <div className="ps-avatar"><img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt="" />{active && <div className="ps-ring" />}</div>
@@ -268,7 +286,7 @@ function Opponent({ player, pos, active, activeSkin }: any) {
                         key={i}
                         card={{ id: `back-${i}`, suit: 'spades', value: 0 }}
                         style={{ isBack: true, marginLeft: i > 0 ? '-45px' : '0' }}
-                        activeSkin={activeSkin}
+                        cardSkin={cardSkin}
                     />
                 ))}
             </div>

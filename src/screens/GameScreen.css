@@ -218,6 +218,21 @@
     justify-content: center;
     position: relative;
     overflow: visible;
+    transition: background 0.5s ease;
+}
+
+.card-back-pattern {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    border-radius: inherit;
+    overflow: hidden;
+}
+
+.card-back-logo {
+    font-weight: 900;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 .empty-hint {
