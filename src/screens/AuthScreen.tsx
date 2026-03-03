@@ -3,8 +3,7 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signInWithPopup,
-    GoogleAuthProvider,
-    AppleAuthProvider
+    AuthProvider
 } from 'firebase/auth';
 import { auth, googleProvider, appleProvider, db } from '../firebase';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
@@ -63,7 +62,7 @@ export default function AuthScreen({ onAuthSuccess }: Props) {
         }
     };
 
-    const handleSocialAuth = async (provider: GoogleAuthProvider | AppleAuthProvider) => {
+    const handleSocialAuth = async (provider: AuthProvider) => {
         setError('');
         setLoading(true);
         try {
