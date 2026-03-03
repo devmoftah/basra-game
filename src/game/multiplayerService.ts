@@ -59,7 +59,20 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
                 return { retry: true };
             }
 
-            const nextSeat = roomData.playerCount;
+            // Find first available seat (empty or bot)
+            let nextSeat = -1;
+            for (let i = 0; i < 4; i++) {
+                const player = roomData.players[i];
+                if (!player.uid || player.uid.startsWith('bot-')) {
+                    nextSeat = i;
+                    break;
+                }
+            }
+
+            if (nextSeat === -1) {
+                return { retry: true }; // No available seats
+            }
+
             const newPlayers = [...roomData.players];
 
             // Replace bot with human
