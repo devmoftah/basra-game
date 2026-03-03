@@ -83,7 +83,7 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
         }
 
         if (result.roomId) {
-            await setupPlayerDisconnectHandler(result.roomId, user.uid);
+            setupPlayerDisconnectHandler(result.roomId, user.uid);
             return result.roomId;
         }
         throw new Error("Failed to join room");
@@ -119,7 +119,7 @@ async function createRoom(uid: string, userName: string, skinId: string): Promis
     };
 
     const docRef = await addDoc(roomsRef, newRoomData);
-    await setupPlayerDisconnectHandler(docRef.id, uid);
+    setupPlayerDisconnectHandler(docRef.id, uid);
     return docRef.id;
 }
 
@@ -147,29 +147,39 @@ export async function startGameInRoom(roomId: string) {
 
 // ── Player Disconnect Handling ───────────────────────────────────────
 export async function setupPlayerDisconnectHandler(roomId: string, playerUid: string) {
-    const rtdb = getDatabase();
-    const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
+    try {
+        const rtdb = getDatabase();
+        const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
 
-    // Set up onDisconnect with voluntary exit flag
-    const disconnectHandler = rtdbOnDisconnect(disconnectRef);
-    await disconnectHandler.set({
-        timestamp: Date.now(),
-        playerUid: playerUid,
-        roomId: roomId,
-        isVoluntaryExit: false // Default to false, will be set to true on manual exit
-    });
+        // Set up onDisconnect with voluntary exit flag
+        const disconnectHandler = rtdbOnDisconnect(disconnectRef);
+        await disconnectHandler.set({
+            timestamp: Date.now(),
+            playerUid: playerUid,
+            roomId: roomId,
+            isVoluntaryExit: false // Default to false, will be set to true on manual exit
+        });
+        console.log('📡 Disconnect handler setup successfully');
+    } catch (error) {
+        console.warn('⚠️ Realtime Database not configured or failed to setup disconnect handler:', error);
+        // We don't throw here to avoid blocking the game joining process
+    }
 }
 
 export async function markVoluntaryExit(roomId: string, playerUid: string) {
-    const rtdb = getDatabase();
-    const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
-    const disconnect = rtdbOnDisconnect(disconnectRef);
-    await disconnect.set({
-        timestamp: Date.now(),
-        playerUid: playerUid,
-        roomId: roomId,
-        isVoluntaryExit: true // Mark as voluntary exit
-    });
+    try {
+        const rtdb = getDatabase();
+        const disconnectRef = ref(rtdb, `disconnects/${roomId}/${playerUid}`);
+        const disconnect = rtdbOnDisconnect(disconnectRef);
+        await disconnect.set({
+            timestamp: Date.now(),
+            playerUid: playerUid,
+            roomId: roomId,
+            isVoluntaryExit: true // Mark as voluntary exit
+        });
+    } catch (error) {
+        console.warn('⚠️ Failed to mark voluntary exit in RTDB:', error);
+    }
 }
 
 export async function replacePlayerWithBot(roomId: string, playerUid: string) {
