@@ -2,7 +2,6 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
-/** @type {import('vite').UserConfig} */
 export default defineConfig({
     base: '/basra-game/',
     plugins: [
@@ -18,15 +17,17 @@ export default defineConfig({
                 background_color: '#151008',
                 display: 'standalone',
                 orientation: 'portrait',
+                start_url: '/basra-game/',
+                scope: '/basra-game/',
                 icons: [
                     {
-                        src: 'assets/skins/cards/card_back_darnes.png',
+                        src: './assets/skins/cards/card_back_darnes.png',
                         sizes: '192x192',
                         type: 'image/png',
                         purpose: 'any'
                     },
                     {
-                        src: 'assets/skins/cards/card_back_darnes.png',
+                        src: './assets/skins/cards/card_back_darnes.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'any'
@@ -41,5 +42,6 @@ export default defineConfig({
     build: {
         outDir: 'dist',
         assetsDir: 'assets',
+        sourcemap: false
     }
 })
