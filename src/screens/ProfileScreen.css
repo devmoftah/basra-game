@@ -1,6 +1,6 @@
 .profile-screen {
     min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--table-bg);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -8,23 +8,25 @@
 }
 
 .profile-container {
-    background: white;
+    background: var(--panel-bg);
     border-radius: 20px;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
     max-width: 600px;
     width: 100%;
     max-height: 90vh;
     overflow-y: auto;
+    border: 2px solid var(--sadu-yellow);
 }
 
 .profile-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: var(--sadu-red);
+    color: var(--text-primary);
     padding: 20px;
     display: flex;
     align-items: center;
     gap: 15px;
     border-radius: 20px 20px 0 0;
+    border-bottom: 3px solid var(--sadu-yellow);
 }
 
 .profile-header h1 {
@@ -34,9 +36,9 @@
 }
 
 .back-btn {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--sadu-yellow);
     border: none;
-    color: white;
+    color: var(--text-primary);
     font-size: 20px;
     width: 40px;
     height: 40px;
@@ -46,7 +48,7 @@
 }
 
 .back-btn:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: var(--sadu-green);
 }
 
 .profile-content {
@@ -59,9 +61,10 @@
 }
 
 .avatar-section h3 {
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 20px;
     font-size: 20px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .avatar-preview {
@@ -72,8 +75,8 @@
     width: 120px;
     height: 120px;
     border-radius: 50%;
-    border: 4px solid #667eea;
-    box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+    border: 4px solid var(--sadu-yellow);
+    box-shadow: 0 4px 20px rgba(209, 154, 49, 0.5);
 }
 
 .avatar-controls {
@@ -81,14 +84,15 @@
 }
 
 .random-avatar-btn {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
+    background: var(--sadu-green);
+    color: var(--text-primary);
+    border: 2px solid var(--sadu-yellow);
     padding: 12px 24px;
     border-radius: 25px;
     cursor: pointer;
     font-size: 16px;
-    transition: transform 0.2s;
+    transition: all 0.3s;
+    font-weight: 700;
 }
 
 .random-avatar-btn:hover {
@@ -96,7 +100,7 @@
 }
 
 .avatar-styles h4 {
-    color: #555;
+    color: var(--text-secondary);
     margin-bottom: 15px;
     font-size: 16px;
 }
@@ -109,8 +113,8 @@
 }
 
 .avatar-style-btn {
-    background: white;
-    border: 2px solid #ddd;
+    background: var(--panel-bg);
+    border: 2px solid var(--sadu-yellow);
     border-radius: 50%;
     width: 60px;
     height: 60px;
@@ -120,13 +124,14 @@
 }
 
 .avatar-style-btn:hover {
-    border-color: #667eea;
+    border-color: var(--sadu-green);
     transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(43, 78, 56, 0.4);
 }
 
 .avatar-style-btn.active {
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    border-color: var(--sadu-green);
+    box-shadow: 0 0 0 3px rgba(43, 78, 56, 0.3);
 }
 
 .avatar-small {
@@ -140,9 +145,10 @@
 }
 
 .info-section h3 {
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 20px;
     font-size: 20px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .form-group {
@@ -151,7 +157,7 @@
 
 .form-group label {
     display: block;
-    color: #555;
+    color: var(--text-secondary);
     font-weight: 500;
     margin-bottom: 8px;
 }
@@ -159,26 +165,29 @@
 .form-group input {
     width: 100%;
     padding: 12px 16px;
-    border: 2px solid #e1e5e9;
+    border: 2px solid var(--sadu-yellow);
     border-radius: 10px;
     font-size: 16px;
     transition: border-color 0.3s;
+    background: var(--panel-bg);
+    color: var(--text-primary);
 }
 
 .form-group input:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--sadu-green);
+    box-shadow: 0 0 0 3px rgba(43, 78, 56, 0.2);
 }
 
 .form-group input:disabled {
-    background: #f8f9fa;
-    color: #6c757d;
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--text-secondary);
     cursor: not-allowed;
 }
 
 .form-group small {
     display: block;
-    color: #6c757d;
+    color: var(--text-secondary);
     font-size: 12px;
     margin-top: 5px;
 }
@@ -192,15 +201,15 @@
 }
 
 .message.success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: var(--sadu-green);
+    color: var(--text-primary);
+    border: 1px solid var(--sadu-yellow);
 }
 
 .message.error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: var(--sadu-red);
+    color: var(--text-primary);
+    border: 1px solid var(--sadu-yellow);
 }
 
 .profile-actions {
@@ -208,13 +217,13 @@
 }
 
 .save-btn {
-    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-    color: white;
-    border: none;
+    background: var(--sadu-green);
+    color: var(--text-primary);
+    border: 2px solid var(--sadu-yellow);
     padding: 14px 32px;
     border-radius: 25px;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.3s;
     min-width: 150px;
@@ -222,7 +231,8 @@
 
 .save-btn:hover:not(:disabled) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(40, 167, 69, 0.3);
+    box-shadow: 0 4px 20px rgba(43, 78, 56, 0.4);
+    background: var(--sadu-yellow);
 }
 
 .save-btn:disabled {

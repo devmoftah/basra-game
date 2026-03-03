@@ -37,9 +37,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #ccc;
-    transition: background .2s;
-    border: 1px solid var(--panel-light);
+    color: var(--text-secondary);
+    transition: all 0.3s;
+    border: 1px solid var(--sadu-yellow);
+    cursor: pointer;
 }
 
 .hdr-icon-btn svg {
@@ -48,8 +49,10 @@
 }
 
 .hdr-icon-btn:hover {
-    background: var(--panel-light);
-    color: white;
+    background: var(--sadu-green);
+    color: var(--text-primary);
+    border-color: var(--sadu-yellow);
+    transform: scale(1.05);
 }
 
 .lobby-logo {
@@ -95,9 +98,18 @@
     width: 36px;
     height: 36px;
     border-radius: 50%;
-    border: 2px solid var(--gold);
+    border: 2px solid var(--sadu-yellow);
     overflow: hidden;
-    background: #eee;
+    background: var(--panel-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.avatar-small:hover {
+    border-color: var(--sadu-green);
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(43, 78, 56, 0.4);
 }
 
 .avatar-small img {
