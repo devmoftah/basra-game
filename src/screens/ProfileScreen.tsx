@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { doc, updateDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import './ProfileScreen.css';
 
 interface Props {
@@ -58,9 +58,9 @@ export default function ProfileScreen({ onBack }: Props) {
         setMessage('');
 
         try {
-            // Update display name in Firestore (since updateProfile might not be available)
+            // Update display name in Firestore using setDoc with merge
             const userDoc = doc(db, 'users', auth.currentUser.uid);
-            await updateDoc(userDoc, {
+            await setDoc(userDoc, {
                 displayName: displayName.trim(),
                 avatarSeed: avatarSeed,
                 avatarType: selectedAvatar,
