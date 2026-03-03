@@ -134,17 +134,35 @@ function findAllSubsetsSummarizingTo(target: number, cards: Card[], startIndex: 
     return results;
 }
 
-function calcPoints(played: Card): number {
+function calcPoints(played: Card, table: Card[] = []): number {
     const v = played.value;
+    
+    // 2, 3, 4 = 0 points
     if ([2, 3, 4].includes(v)) return 0;
+    
+    // Ace = 25 points (بصرة)
     if (v === 1) return 25;
+    
+    // Regular cards (5-10)
     if (v === 5) return 10;
     if (v === 6) return 12;
-    if (v === 7) return 25;
     if (v === 8) return 16;
     if (v === 9) return 18;
     if (v === 10) return 20;
+    
+    // 7♦️ (الكوماندو) - special rules
+    if (v === 7 && played.suit === 'diamonds') {
+        const tableSum = table.reduce((sum, card) => sum + card.value, 0);
+        if (tableSum <= 10) return 50; // بصرة كاملة
+        return 25; // كجوكر
+    }
+    
+    // Regular 7 = 25 points
+    if (v === 7) return 25;
+    
+    // Jack (الولد) = 50 points (يقش الطاولة)
     if (v === 11) return 50;
+    
     return 0;
 }
 
@@ -191,6 +209,29 @@ export function dealNewRound(state: GameState): GameState {
     };
 }
 
+export function redealIfNeeded(state: GameState): GameState {
+    // Check if all players have empty hands
+    const allHandsEmpty = state.players.every(p => p.hand.length === 0);
+    
+    if (!allHandsEmpty || state.deck.length === 0) {
+        return state; // No redeal needed
+    }
+    
+    // Redeal 4 cards to each player
+    const newDeck = [...state.deck];
+    const players = state.players.map(p => ({
+        ...p,
+        hand: newDeck.splice(0, 4), // 4 new cards
+    }));
+    
+    return {
+        ...state,
+        deck: newDeck,
+        players,
+        flashMessage: 'تم إعادة توزيع 4 كروت جديدة لكل لاعب',
+    };
+}
+
 function dealNextBatch(state: GameState): GameState {
     const deck = [...state.deck];
     const perPlayer = deck.length === 28 ? 3 : 4;
@@ -218,7 +259,35 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
             flashMessage = `بصرة! +${capture.basraPoints} 🎉`;
         }
     } else {
-        tableCards = [...tableCards, card];
+        // Special rules for Jack and 7♦️
+        if (card.value === 11) {
+            // Jack (الولد) - يقش الطاولة بالكامل
+            player.captured.push(card, ...tableCards);
+            player.basraPoints += 50;
+            flashMessage = `الولد يقش الطاولة! +50 نقطة 🎯`;
+            tableCards = [];
+            lastCapturePlayer = playerIndex;
+        } else if (card.value === 7 && card.suit === 'diamonds') {
+            // 7♦️ (الكوماندو) - special rules
+            const tableSum = tableCards.reduce((sum, c) => sum + c.value, 0);
+            if (tableSum <= 10) {
+                // بصرة كاملة
+                player.captured.push(card, ...tableCards);
+                player.basraPoints += 50;
+                flashMessage = `الكوماندو بصرة! +50 نقطة 💎`;
+                tableCards = [];
+                lastCapturePlayer = playerIndex;
+            } else {
+                // كجوكر - ياخذ كل شي
+                player.captured.push(card, ...tableCards);
+                player.basraPoints += 25;
+                flashMessage = `الكوماندو كجوكر! +25 نقطة 🃏`;
+                tableCards = [];
+                lastCapturePlayer = playerIndex;
+            }
+        } else {
+            tableCards = [...tableCards, card];
+        }
     }
 
     let newState: GameState = {
@@ -231,16 +300,21 @@ export function applyMove(state: GameState, playerIndex: number, card: Card, cap
         if (newState.deck.length > 0) {
             newState = dealNextBatch(newState);
         } else {
-            // ─── قاعدة الورق المتبقي ───
-            // إذا انتهت الجولة تماماً، الفريق الذي قام بآخر أكلة يأخذ ما تبقى على الأرض
-            if (lastCapturePlayer !== null && tableCards.length > 0) {
-                newState.players[lastCapturePlayer].captured.push(...tableCards);
+            // End of round - قش الأرض
+            if (lastCapturePlayer !== null && newState.tableCards.length > 0) {
+                // الفريق الذي قام بآخر عملية "أكل" يأخذ كل الكروت المتبقية
+                const lastPlayer = players[lastCapturePlayer];
+                lastPlayer.captured.push(...newState.tableCards);
+                flashMessage = `${lastPlayer.name} يقش الأرض! يأخذ ${newState.tableCards.length} كروت 🌍`;
                 newState.tableCards = [];
-                newState.flashMessage = `قش الأرض لـ ${newState.players[lastCapturePlayer].name}! 🧹`;
             }
-            newState.phase = 'roundEnd';
+            newState = processScore(newState);
         }
     }
+
+    // Check for redeal
+    newState = redealIfNeeded(newState);
+
     return newState;
 }
 
