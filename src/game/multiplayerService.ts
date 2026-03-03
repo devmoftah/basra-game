@@ -165,6 +165,44 @@ export async function markVoluntaryExit(roomId: string, playerUid: string) {
     });
 }
 
+export async function replacePlayerWithBot(roomId: string, playerUid: string) {
+    const roomRef = doc(db, 'rooms', roomId);
+    
+    try {
+        await runTransaction(db, async (transaction) => {
+            const roomSnap = await transaction.get(roomRef);
+            if (!roomSnap.exists()) return;
+            
+            const roomData = roomSnap.data() as GameRoom;
+            const playerIndex = roomData.players.findIndex(p => p.uid === playerUid);
+            
+            if (playerIndex === -1) return; // Player not found
+            
+            // Replace player with bot immediately
+            const updatedPlayers = [...roomData.players];
+            updatedPlayers[playerIndex] = {
+                ...updatedPlayers[playerIndex],
+                isHuman: false,
+                uid: undefined,
+                name: `بوت ${playerIndex + 1}`
+            };
+            
+            // Update playerUids to remove exited player
+            const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
+            
+            transaction.update(roomRef, {
+                players: updatedPlayers,
+                playerCount: updatedPlayerUids.length,
+                playerUids: updatedPlayerUids,
+                'gameState.players': updatedPlayers,
+                'gameState.flashMessage': `تم استبدال اللاعب الذي خرج ببوت`
+            });
+        });
+    } catch (error) {
+        console.error('Error replacing player with bot:', error);
+    }
+}
+
 export async function handlePlayerDisconnect(roomId: string, playerUid: string) {
     const roomRef = doc(db, 'rooms', roomId);
     

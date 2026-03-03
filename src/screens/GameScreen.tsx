@@ -9,7 +9,7 @@ import {
 import { STORE_ITEMS } from '../data/storeItems';
 import { db, auth } from '../firebase';
 import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
-import { findOrCreateRoom, startGameInRoom } from '../game/multiplayerService';
+import { findOrCreateRoom, startGameInRoom, replacePlayerWithBot } from '../game/multiplayerService';
 import './GameScreen.css';
 
 interface Props {
@@ -42,6 +42,16 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const isHost = room?.adminId === auth.currentUser?.uid;
     const isProcessingMove = useRef(false);
     const isScoringInProgress = useRef(false);
+
+    // Handle immediate bot replacement on exit
+    useEffect(() => {
+        return () => {
+            // When component unmounts (player exits), replace with bot immediately
+            if (room && auth.currentUser) {
+                replacePlayerWithBot(room.id, auth.currentUser.uid);
+            }
+        };
+    }, [room]);
 
     // Join Room logic
     useEffect(() => {
