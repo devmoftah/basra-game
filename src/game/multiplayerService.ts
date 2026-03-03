@@ -191,6 +191,7 @@ export async function replacePlayerWithBot(roomId: string, playerUid: string) {
             const updatedPlayerUids = roomData.playerUids.filter(uid => uid !== playerUid);
             
             transaction.update(roomRef, {
+                status: 'playing',
                 players: updatedPlayers,
                 playerCount: updatedPlayerUids.length,
                 playerUids: updatedPlayerUids,
