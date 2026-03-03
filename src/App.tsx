@@ -14,9 +14,8 @@ export type Screen = 'lobby' | 'game' | 'store' | 'purchases' | 'auth' | 'profil
 
 function App() {
     const [user, setUser] = useState<any>(null);
-    const [screen, setScreen] = useState<Screen>('auth'); // Add timeout to prevent infinite loading
+    const [screen, setScreen] = useState<Screen>('auth');
     const [loading, setLoading] = useState(true);
-    const loadingTimeout = setTimeout(() => {}, 0);
 
     useEffect(() => {
         let unsubData: (() => void) | null = null;
