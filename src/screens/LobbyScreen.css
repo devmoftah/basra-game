@@ -1,0 +1,562 @@
+/* ====================================================
+   LOBBY SCREEN CSS
+   ==================================================== */
+
+.lobby-root {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--sand-light);
+    overflow: hidden;
+}
+
+/* ── HEADER ─────────────────────────────────────── */
+.lobby-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-dark);
+    padding: 10px 14px;
+    flex-shrink: 0;
+    border-bottom: 3px solid var(--gold-dark);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .5);
+}
+
+.lobby-header-left,
+.lobby-header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hdr-icon-btn {
+    width: 38px;
+    height: 38px;
+    background: var(--panel-mid);
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    transition: background .2s;
+    border: 1px solid var(--panel-light);
+}
+
+.hdr-icon-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.hdr-icon-btn:hover {
+    background: var(--panel-light);
+    color: white;
+}
+
+.lobby-logo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+
+.logo-ar {
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--gold-light);
+    text-shadow: 0 2px 6px rgba(0, 0, 0, .5);
+    letter-spacing: 2px;
+}
+
+.logo-en {
+    font-size: 9px;
+    color: #888;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.coins-badge {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: linear-gradient(135deg, #3d3220, #5c4a25);
+    border: 1px solid var(--gold-dark);
+    border-radius: 20px;
+    padding: 5px 12px;
+    color: var(--gold-light);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.coin-icon {
+    font-size: 15px;
+}
+
+.avatar-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--gold);
+    overflow: hidden;
+    background: #eee;
+}
+
+.avatar-small img {
+    width: 100%;
+    height: 100%;
+}
+
+/* ── STATUS BAR ──────────────────────────────────── */
+.status-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--panel-mid);
+    color: #aaa;
+    font-size: 11px;
+    padding: 5px 16px;
+    flex-shrink: 0;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4caf50;
+    box-shadow: 0 0 5px #4caf50;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1
+    }
+
+    50% {
+        opacity: .35
+    }
+}
+
+/* ── BODY ────────────────────────────────────────── */
+.lobby-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 14px 14px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.lobby-body::-webkit-scrollbar {
+    display: none;
+}
+
+/* ══════════════════════════════════════════════════
+   BASRA CARD
+   ══════════════════════════════════════════════════ */
+.basra-card {
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    background: white;
+    border: 2px solid rgba(200, 163, 89, .4);
+    display: flex;
+    flex-direction: column;
+}
+
+.basra-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, .3);
+}
+
+.basra-card:active {
+    transform: scale(.985);
+}
+
+/* Sadu horizontal strips */
+.sadu-h {
+    height: 11px;
+    background: repeating-linear-gradient(90deg,
+            #8b2c23 0, #8b2c23 14px,
+            #d4a017 14px, #d4a017 20px,
+            #2d6b4a 20px, #2d6b4a 34px,
+            #d4a017 34px, #d4a017 40px,
+            #1a3e5d 40px, #1a3e5d 54px,
+            #d4a017 54px, #d4a017 60px);
+}
+
+.sadu-h-top {
+    border-bottom: 1px solid rgba(0, 0, 0, .25);
+}
+
+.sadu-h-bot {
+    border-top: 1px solid rgba(0, 0, 0, .25);
+}
+
+/* Row: side sadu strips + felt */
+.basra-felt-inner {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+}
+
+/* Sadu vertical strips */
+.sadu-v {
+    width: 11px;
+    flex-shrink: 0;
+    background: repeating-linear-gradient(0deg,
+            #8b2c23 0, #8b2c23 14px,
+            #d4a017 14px, #d4a017 20px,
+            #2d6b4a 20px, #2d6b4a 34px,
+            #d4a017 34px, #d4a017 40px,
+            #1a3e5d 40px, #1a3e5d 54px,
+            #d4a017 54px, #d4a017 60px);
+}
+
+/* Green felt */
+.basra-felt-center {
+    flex: 1;
+    min-height: 160px;
+    background: radial-gradient(ellipse at 50% 50%, #3e8060 0%, #1e5038 55%, #143825 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.basra-felt-center::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, .07) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+/* Golden center badge */
+.basra-center-badge {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #9c7210 0%, #e8ba1e 40%, #f5d84a 60%, #d4a017 100%);
+    border-radius: 30px;
+    padding: 10px 30px;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, .55),
+        inset 0 1px 1px rgba(255, 255, 255, .55),
+        0 0 0 2px rgba(212, 160, 23, .35);
+    z-index: 10;
+}
+
+.bcb-text {
+    font-size: 22px;
+    font-weight: 900;
+    color: #3a2000;
+    letter-spacing: 3px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, .5);
+}
+
+/* Deco cards on felt */
+.bc {
+    position: absolute;
+    width: 44px;
+    height: 62px;
+    background: white;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .45);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+}
+
+.bc-suit {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.bc-val {
+    font-size: 12px;
+    font-weight: 900;
+    color: #222;
+}
+
+.bc-suit.red {
+    color: #cc0000;
+}
+
+/* 4-corner positions */
+.bc-left {
+    transform: rotate(-14deg);
+    left: 14%;
+    top: 50%;
+    margin-top: -31px;
+}
+
+.bc-right {
+    transform: rotate(13deg);
+    right: 14%;
+    top: 50%;
+    margin-top: -31px;
+}
+
+.bc-far-left {
+    transform: rotate(-26deg);
+    left: 3%;
+    top: 50%;
+    margin-top: -31px;
+    opacity: .82;
+}
+
+.bc-far-right {
+    transform: rotate(24deg);
+    right: 3%;
+    top: 50%;
+    margin-top: -31px;
+    opacity: .82;
+}
+
+/* Golden play button flush at bottom of card */
+.basra-play-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #c49b0a 0%, #f0d040 50%, #c49b0a 100%);
+    color: #3a2000;
+    font-size: 16px;
+    font-weight: 900;
+    padding: 13px;
+    border-radius: 0 0 16px 16px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 4px 10px rgba(196, 155, 10, .35);
+    letter-spacing: .5px;
+    transition: background .15s, transform .1s;
+    cursor: pointer;
+}
+
+.basra-play-btn:hover {
+    background: linear-gradient(135deg, #d4ab12 0%, #fae060 50%, #d4ab12 100%);
+}
+
+.basra-play-btn:active {
+    transform: scale(.98);
+}
+
+/* ── SECTION TITLE ───────────────────────────────── */
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-mid);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.coming-soon-badge {
+    background: var(--panel-mid);
+    color: #ccc;
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+/* ── GAMES GRID ──────────────────────────────────── */
+.games-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.game-tile {
+    background: white;
+    border-radius: 14px;
+    padding: 14px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .1);
+    border: 1.5px solid rgba(0, 0, 0, .06);
+}
+
+.coming-soon-tile {
+    opacity: .72;
+}
+
+.tile-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ace of Diamonds – Baloot */
+.card-icon-ace {
+    width: 50px;
+    height: 70px;
+    background: white;
+    border: 1.5px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .2);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ci-tl {
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.1;
+}
+
+.ci-br {
+    position: absolute;
+    bottom: 4px;
+    left: 5px;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.1;
+    transform: rotate(180deg);
+}
+
+.ci-center {
+    font-size: 28px;
+    line-height: 1;
+}
+
+.ci-tl.red,
+.ci-br.red,
+.ci-center.red {
+    color: #cc0000;
+}
+
+/* Trix card */
+.card-icon-trix {
+    width: 50px;
+    height: 70px;
+    background: linear-gradient(135deg, #1a3e5d, #2a6090);
+    border: 1.5px solid #1a3e5d;
+    border-radius: 6px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+
+.card-icon-trix .ci-tl,
+.card-icon-trix .ci-br {
+    color: white;
+    font-size: 11px;
+}
+
+.trix-star {
+    font-size: 26px;
+    color: var(--gold-light);
+}
+
+/* Joker card – Romino */
+.card-icon-joker {
+    width: 50px;
+    height: 70px;
+    background: linear-gradient(160deg, #2a0050, #6a0090);
+    border: 1.5px solid #500070;
+    border-radius: 6px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+
+.joker-top {
+    font-size: 32px;
+    line-height: 1;
+}
+
+.joker-label {
+    font-size: 7px;
+    font-weight: 900;
+    color: var(--gold-light);
+    letter-spacing: 1px;
+}
+
+.tile-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.tile-tag {
+    font-size: 10px;
+    font-weight: 700;
+    background: var(--panel-mid);
+    color: #ddd;
+    padding: 2px 9px;
+    border-radius: 10px;
+}
+
+/* ── BOTTOM NAV ──────────────────────────────────── */
+.bottom-nav {
+    display: flex;
+    background: var(--panel-dark);
+    border-top: 2px solid var(--gold-dark);
+    flex-shrink: 0;
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, .4);
+}
+
+.nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+    color: #777;
+    background: transparent;
+    gap: 3px;
+    transition: color .15s;
+    position: relative;
+}
+
+.nav-item.active {
+    color: var(--gold-light);
+}
+
+.nav-item.active::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 25%;
+    right: 25%;
+    height: 2px;
+    background: var(--gold-light);
+    border-radius: 0 0 3px 3px;
+}
+
+.nav-icon {
+    font-size: 22px;
+}
+
+.nav-label {
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.nav-item:hover {
+    color: #bbb;
+}

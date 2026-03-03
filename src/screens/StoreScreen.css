@@ -1,0 +1,285 @@
+/* ================================================
+   STORE SCREEN CSS - ROYAL/VIP THEME
+   ================================================ */
+
+.store-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    background: radial-gradient(circle at 50% 10%, #2a2018 0%, #151008 50%, #0a0a05 100%);
+    color: #fff;
+    overflow: hidden;
+    font-family: 'Cairo', sans-serif;
+    direction: rtl;
+}
+
+/* ── HEADER ── */
+.store-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: rgba(42, 32, 24, 0.85);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid var(--gold-dark);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    z-index: 100;
+}
+
+.back-btn {
+    background: transparent;
+    color: var(--gold-light);
+    border: 1.5px solid var(--gold-dark);
+    border-radius: 8px;
+    padding: 5px 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.back-btn:hover {
+    background: rgba(212, 160, 23, 0.1);
+    transform: scale(1.1);
+}
+
+.store-title {
+    font-size: 20px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #f5d84a, #d4a017, #9c7210);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.user-balance {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--gold-dark);
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.coin-icon {
+    font-size: 16px;
+}
+
+.balance-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f5d84a;
+}
+
+/* ── TABS ── */
+.store-tabs {
+    display: flex;
+    padding: 12px;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+.tab-item {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(212, 160, 23, 0.15);
+    border-radius: 12px;
+    padding: 10px;
+    color: #bbb;
+    font-size: 13px;
+    font-weight: 800;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.tab-item.active {
+    background: linear-gradient(135deg, rgba(212, 160, 23, 0.2), rgba(156, 114, 16, 0.4));
+    border-color: var(--gold);
+    color: var(--gold-light);
+    box-shadow: 0 0 20px rgba(212, 160, 23, 0.2);
+    transform: translateY(-2px);
+}
+
+/* ── CONTENT ── */
+.store-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 15px;
+    padding-bottom: 40px;
+}
+
+.items-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.store-card {
+    position: relative;
+    background: linear-gradient(145deg, #2a2018, #1a1510);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+}
+
+.store-card:hover {
+    border-color: rgba(212, 160, 23, 0.3);
+    transform: scale(1.02);
+}
+
+.new-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #e44c3c;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 900;
+    padding: 3px 7px;
+    border-radius: 10px;
+    z-index: 5;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+.item-preview {
+    height: 110px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+}
+
+/* ── CARD BACK PREVIEW ── */
+.card-back-preview {
+    width: 50px;
+    height: 75px;
+    border: 3px solid #fff;
+    border-radius: 4px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+    animation: cardFloat 3s ease-in-out infinite;
+}
+
+@keyframes cardFloat {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+.card-inner-pattern {
+    position: absolute;
+    inset: 4px;
+    border: 1px dashed rgba(255, 255, 255, 0.3);
+    opacity: 0.3;
+}
+
+.card-center-logo {
+    font-size: 16px;
+    font-weight: 900;
+    color: white;
+    opacity: 0.8;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
+}
+
+/* ── TABLE TOP PREVIEW ── */
+.table-top-preview {
+    width: 90px;
+    height: 60px;
+    border-radius: 30px;
+    border: 3px solid rgba(0, 0, 0, 0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+    position: relative;
+}
+
+.table-inner-border {
+    position: absolute;
+    inset: 6px;
+    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+}
+
+.item-main-icon {
+    font-size: 38px;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.15));
+}
+
+.item-name {
+    font-size: 13px;
+    font-weight: 800;
+    text-align: center;
+    color: #f0f0f0;
+    margin-bottom: 10px;
+    min-height: 40px;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.buy-btn {
+    background: linear-gradient(135deg, #f5d84a, #d4a017, #9c7210);
+    border: none;
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.buy-btn:hover {
+    transform: scale(1.05);
+    filter: brightness(1.1);
+}
+
+.price-tag {
+    font-size: 14px;
+    font-weight: 900;
+    color: #2a2010;
+}
+
+.currency-label {
+    font-size: 10px;
+    color: #5a3a00;
+    font-weight: 800;
+}
+
+/* ── FOOTER DECORATION ── */
+.store-footer {
+    height: 4px;
+    background: var(--gold-dark);
+}
+
+.sadu-stripe {
+    height: 100%;
+    background: repeating-linear-gradient(45deg,
+            #8b2c23,
+            #8b2c23 10px,
+            #d4a017 10px,
+            #d4a017 20px);
+}

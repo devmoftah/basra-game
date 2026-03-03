@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
+
+/* ================================================
+   DESIGN TOKENS
+   ================================================ */
+:root {
+    /* Core colours */
+    --sand: #d9c9a8;
+    --sand-dark: #c4af87;
+    --sand-light: #ede0c4;
+    --panel-dark: #3a3328;
+    --panel-mid: #4e4538;
+    --panel-light: #635a4a;
+
+    --gold: #d4a017;
+    --gold-light: #f0c842;
+    --gold-dark: #9c7210;
+
+    --green-felt: #2d6b4a;
+    --sadu-red: #8b2c23;
+
+    --white: #ffffff;
+    --text-dark: #2a2010;
+    --text-mid: #6b5c40;
+
+    /* Radii */
+    --r-sm: 8px;
+    --r-md: 14px;
+    --r-lg: 20px;
+    --r-xl: 28px;
+
+    /* Shadows */
+    --shadow-card: 0 4px 12px rgba(0, 0, 0, .35);
+    --shadow-btn: 0 3px 8px rgba(0, 0, 0, .4);
+}
+
+/* ================================================
+   RESET & GLOBAL
+   ================================================ */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body,
+#root {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+body {
+    font-family: 'Cairo', sans-serif;
+    background: var(--sand);
+    color: var(--text-dark);
+    direction: rtl;
+}
+
+.app-root {
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+button {
+    cursor: pointer;
+    border: none;
+    outline: none;
+    font-family: 'Cairo', sans-serif;
+}
