@@ -170,8 +170,45 @@ export async function markVoluntaryExit(roomId: string, playerUid: string) {
     try {
         // Handle the disconnect immediately - this is enough for voluntary exit
         await handlePlayerDisconnect(roomId, playerUid);
+        
+        // Also try manual cleanup as backup
+        await manualRoomCleanup(roomId);
     } catch (error) {
         console.warn('⚠️ Failed to handle voluntary exit:', error);
+    }
+}
+
+// Manual room cleanup as backup
+export async function manualRoomCleanup(roomId: string) {
+    try {
+        const roomRef = doc(db, 'rooms', roomId);
+        const roomSnap = await getDocs(query(collection(db, 'rooms'), where('__name__', '==', roomId)));
+        
+        if (roomSnap.empty) {
+            console.log(`🗑️ Room ${roomId} already deleted`);
+            return;
+        }
+        
+        const roomData = roomSnap.docs[0].data() as GameRoom;
+        const humanPlayers = roomData.players.filter(p => p.isHuman);
+        
+        console.log(`🔍 Room ${roomId} has ${humanPlayers.length} human players`);
+        
+        if (humanPlayers.length === 0) {
+            console.log(`🗑️ Manually deleting room ${roomId} - no human players`);
+            await deleteDoc(roomRef);
+            
+            // Also delete from RTDB
+            try {
+                const rtdbRef = ref(rtdb, `disconnects/${roomId}`);
+                await remove(rtdbRef);
+                console.log(`🗑️ RTDB data for room ${roomId} also deleted`);
+            } catch (rtdbError) {
+                console.warn('RTDB deletion failed:', rtdbError);
+            }
+        }
+    } catch (error) {
+        console.error('Error in manual room cleanup:', error);
     }
 }
 
