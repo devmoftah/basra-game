@@ -52,7 +52,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 unsub = onSnapshot(doc(db, 'rooms', rid), (s) => {
                     const data = s.data() as GameRoom;
                     if (data) {
-                        setRoom(data);
+                        // ✅ FIX: s.data() doesn't include the document ID,
+                        // so we must merge it manually to avoid room.id being undefined
+                        setRoom({ ...data, id: s.id });
                         setGs(data.gameState);
                         setLoadingRoom(false);
                     }
@@ -225,8 +227,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         );
     }
 
-    const myIndex = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
-    const human = gs.players[myIndex] || gs.players[0] || { hand: [], basraPoints: 0 };
+    const myIndexRaw = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
+    const myIndex = myIndexRaw >= 0 ? myIndexRaw : 0; // ✅ fallback to seat 0 if UID not matched
+    const human = gs.players[myIndex] || { hand: [], basraPoints: 0 };
     const turnsSafe = (idx: number) => gs.players[idx] || { name: '...', hand: [], basraPoints: 0, activeSkinId: 'k1' };
     const isActuallyMyTurn = gs.currentPlayer === myIndex && gs.phase === 'playing' && !previewMove;
 
