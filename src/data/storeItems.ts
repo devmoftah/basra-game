@@ -29,5 +29,5 @@ export const STORE_ITEMS: StoreItem[] = [
     { id: 't2', name: 'طاولة الأفريقي الخضراء', price: 1000, image: '🧶', category: 'tables', colors: ['#00703c', '#ffffff'] },
     { id: 't3', name: 'طاولة الزعيم (الأهلي)', price: 1200, image: '🧶', category: 'tables', colors: ['#004400', '#009900'], isNew: true },
     { id: 't4', name: 'طاولة العميد (الاتحاد)', price: 1200, image: '🧶', category: 'tables', colors: ['#990000', '#ee0000'] },
-    { id: 't5', name: 'طاولة الكلاسيكية الفاخرة', price: 0, image: '/assets/skins/tables/classic_premium.png', category: 'tables', colors: ['#8B4513', '#D2691E'], isNew: true },
+    { id: 't5', name: 'طاولة الكلاسيكية الفاخرة', price: 1, image: '/assets/skins/tables/classic_premium.png', category: 'tables', colors: ['#8B4513', '#D2691E'], isNew: true },
 ];
