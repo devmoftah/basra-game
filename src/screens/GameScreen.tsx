@@ -25,6 +25,21 @@ interface PendingMove {
     capture: CaptureOption | null;
 }
 
+// Helper: deterministic scatter positions for table cards
+function getTableCardPosition(cardId: string) {
+    let hash = 0;
+    for (let i = 0; i < cardId.length; i++) {
+        hash = ((hash << 5) - hash) + cardId.charCodeAt(i);
+        hash = hash & hash;
+    }
+    hash = Math.abs(hash);
+    return {
+        left: 15 + (hash % 55),
+        top: 15 + ((hash >> 7) % 55),
+        rotation: ((hash >> 14) % 30) - 15,
+    };
+}
+
 export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSkinId }: Props) {
     const defaultSkin = STORE_ITEMS.find(s => s.id === 'k1');
     const [gs, setGs] = useState<GameState | null>(null);
@@ -425,36 +440,84 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         <div className={isImageTable ? "felt-center-image" : "felt-center"} style={{
                             background: !isImageTable && tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : 'transparent',
                             width: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minHeight: isImageTable ? '300px' : '280px'
+                            position: 'relative',
+                            minHeight: isImageTable ? '300px' : '280px',
+                            overflow: 'hidden'
                         }}>
-                            {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
-                            {gs.tableCards.map((c, i) => (
-                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-35px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
-                            ))}
+                            {gs.tableCards.length === 0 && !previewMove && (
+                                <span className="empty-hint" style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)'
+                                }}>الأرض فارغة</span>
+                            )}
+                            <AnimatePresence>
+                                {gs.tableCards.map((c, i) => {
+                                    const pos = getTableCardPosition(c.id);
+                                    return (
+                                        <motion.div
+                                            key={c.id}
+                                            initial={{ scale: 1.8, opacity: 0, x: '-50%', y: '-50%', rotate: pos.rotation }}
+                                            animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%', rotate: pos.rotation }}
+                                            exit={{ scale: 0, opacity: 0, x: '-50%', y: '-50%' }}
+                                            transition={{
+                                                type: "spring",
+                                                stiffness: 300,
+                                                damping: 22,
+                                            }}
+                                            style={{
+                                                position: 'absolute',
+                                                left: `${pos.left}%`,
+                                                top: `${pos.top}%`,
+                                                zIndex: i,
+                                            }}
+                                        >
+                                            <CardComp card={c} hl={highlightIds.has(c.id)} size="table" />
+                                        </motion.div>
+                                    );
+                                })}
+                            </AnimatePresence>
                         </div>
                         {!isImageTable && <div className="sadu-stripe-v" />}
                     </div>
                     {!isImageTable && <div className="sadu-stripe-h" />}
                 </div>
                 {previewMove && gs.players[previewMove.playerIndex] && (
-                    <div className="preview-layer">
-                        <CardComp
-                            card={previewMove.card}
-                            size="large"
-                            hl={true}
-                            cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
-                            style={{
-                                boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
-                                animation: 'cardEntry 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                    <motion.div
+                        className="preview-layer"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.3, rotate: -15, y: 100 }}
+                            animate={{ scale: 1, rotate: 0, y: 0 }}
+                            transition={{
+                                type: "spring",
+                                stiffness: 350,
+                                damping: 18,
                             }}
-                        />
-                        <div className="player-indicator-tag">
+                        >
+                            <CardComp
+                                card={previewMove.card}
+                                size="large"
+                                hl={true}
+                                cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
+                                style={{
+                                    boxShadow: '0 10px 40px rgba(0,0,0,0.6), 0 0 60px rgba(212, 160, 23, 0.3)',
+                                }}
+                            />
+                        </motion.div>
+                        <motion.div
+                            className="player-indicator-tag"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.15 }}
+                        >
                             {gs.players[previewMove.playerIndex].name}
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
                 )}
                 <AnimatePresence>
                     <motion.div
@@ -541,7 +604,7 @@ function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
 
     return (
         <div
-            className={`playing-card ${size === 'large' ? 'card-lg' : ''} ${hl ? 'card-hl' : ''} ${onClick ? 'card-btn' : ''}`}
+            className={`playing-card ${size === 'large' ? 'card-lg' : ''} ${size === 'table' ? 'card-table' : ''} ${hl ? 'card-hl' : ''} ${onClick ? 'card-btn' : ''}`}
             style={{
                 color: SUIT_COLOR[card.suit as Suit],
                 ...style,

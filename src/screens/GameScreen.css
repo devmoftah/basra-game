@@ -223,7 +223,7 @@
     align-items: center;
     justify-content: center;
     position: relative;
-    overflow: visible;
+    overflow: hidden;
     transition: background 0.5s ease;
     padding: 20px;
 }
@@ -277,8 +277,8 @@
 .felt-center-image {
     background: transparent !important;
     min-height: 100%;
-    flex-wrap: wrap;
-    gap: 4px;
+    position: relative;
+    overflow: hidden;
     padding: 20px 10px;
 }
 
@@ -348,6 +348,23 @@
     width: 105px;
     /* Large cards for hand/preview */
     height: 150px;
+}
+
+.card-table {
+    width: 58px;
+    height: 82px;
+}
+
+.card-table .pc-v {
+    font-size: 10px;
+}
+
+.card-table .pc-s {
+    font-size: 8px;
+}
+
+.card-table .pc-mid {
+    font-size: 22px;
 }
 
 .card-btn {
