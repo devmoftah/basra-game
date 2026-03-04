@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { auth, db, storage } from '../firebase';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { updateProfile } from 'firebase/auth';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import './ProfileScreen.css';
@@ -14,6 +14,8 @@ export default function ProfileScreen({ onBack }: Props) {
     const [birthDate, setBirthDate] = useState('');
     const [phoneNumber, setPhoneNumber] = useState('');
     const [gender, setGender] = useState('male');
+    const [bio, setBio] = useState('');
+    const [country, setCountry] = useState('SA');
     const [avatarSeed, setAvatarSeed] = useState('');
     const [photoURL, setPhotoURL] = useState('');
     const [loading, setLoading] = useState(false);
@@ -47,6 +49,8 @@ export default function ProfileScreen({ onBack }: Props) {
                         if (data.phoneNumber) setPhoneNumber(data.phoneNumber);
                         if (data.gender) setGender(data.gender);
                         if (data.photoURL) setPhotoURL(data.photoURL);
+                        if (data.bio) setBio(data.bio);
+                        if (data.country) setCountry(data.country);
                     }
                 } catch (error) {
                     console.error('Error loading user data:', error);
@@ -60,24 +64,19 @@ export default function ProfileScreen({ onBack }: Props) {
         const file = e.target.files?.[0];
         if (!file || !auth.currentUser) return;
 
-        // Validations
         if (file.size > 2 * 1024 * 1024) {
             setMessage('⚠️ حجم الصورة كبير جداً (الأقصى 2 ميجابايت)');
             return;
         }
 
         setUploading(true);
-        setMessage('');
-
         try {
             const storageRef = ref(storage, `avatars/${auth.currentUser.uid}`);
             await uploadBytes(storageRef, file);
             const downloadURL = await getDownloadURL(storageRef);
-
             setPhotoURL(downloadURL);
             setMessage('✅ تم رفع الصورة بنجاح!');
         } catch (error) {
-            console.error('Upload error:', error);
             setMessage('❌ فشل رفع الصورة');
         } finally {
             setUploading(false);
@@ -85,8 +84,13 @@ export default function ProfileScreen({ onBack }: Props) {
     };
 
     const handleSave = async () => {
-        if (!auth.currentUser || !displayName.trim()) {
-            setMessage('⚠️ الاسم مطلوب لتحديث الملف');
+        if (!auth.currentUser) {
+            setMessage('⚠️ سجل الدخول أولاً لحفظ البيانات');
+            return;
+        }
+
+        if (!displayName.trim()) {
+            setMessage('⚠️ الاسم مطلوب لتحديث الهوية');
             return;
         }
 
@@ -94,15 +98,15 @@ export default function ProfileScreen({ onBack }: Props) {
         setMessage('');
 
         try {
-            // Update Auth Profile
+            // 1. Update Authentication Profile (Internal Firebase Service)
             await updateProfile(auth.currentUser, {
                 displayName: displayName.trim(),
                 photoURL: photoURL
             });
 
-            // Update Firestore
+            // 2. Update Official Record in Firestore (Global Database)
             const userDoc = doc(db, 'users', auth.currentUser.uid);
-            await setDoc(userDoc, {
+            const finalData = {
                 displayName: displayName.trim(),
                 avatarSeed: avatarSeed,
                 avatarType: selectedAvatar,
@@ -110,25 +114,31 @@ export default function ProfileScreen({ onBack }: Props) {
                 birthDate: birthDate,
                 phoneNumber: phoneNumber,
                 gender: gender,
+                bio: bio.trim(),
+                country: country,
+                isProfileComplete: true, // Flag for game integrity
                 updatedAt: new Date().toISOString()
-            }, { merge: true });
+            };
 
-            setMessage('✅ تم تحديث ملفك الملكي بنجاح!');
+            await setDoc(userDoc, finalData, { merge: true });
 
+            setMessage('✅ تم مزامنة بياناتك الرسمية مع الخادم بنجاح!');
+
+            // Artificial delay for "Official Feel"
             setTimeout(() => {
                 onBack();
-            }, 1800);
+            }, 2000);
 
         } catch (error) {
-            console.error('Error updating profile:', error);
-            setMessage('❌ عذراً، حدث خطأ أثناء الحفظ');
+            console.error('Critical Profile Update Error:', error);
+            setMessage('❌ فشل الاتصال بقاعدة البيانات. حاول مرة أخرى');
         } finally {
             setLoading(false);
         }
     };
 
     const generateRandomAvatar = () => {
-        setPhotoURL(''); // Clear custom photo when choosing avatar
+        setPhotoURL('');
         const randomSeed = Math.random().toString(36).substring(7);
         setAvatarSeed(randomSeed);
     };
@@ -139,16 +149,16 @@ export default function ProfileScreen({ onBack }: Props) {
                 <header className="profile-header">
                     <button className="back-btn" onClick={onBack}>‹</button>
                     <div className="title-group">
-                        <span className="title-icon">👤</span>
-                        <h1>الملف الشخصي</h1>
+                        <span className="title-icon">🏛️</span>
+                        <h1>السجل الرسمي للمواطن</h1>
                     </div>
                 </header>
 
                 <div className="profile-scroll-area">
-                    {/* Avatar Master Section */}
+                    {/* Official Avatar Section */}
                     <div className="avatar-master-section">
                         <div className="avatar-display-wrapper">
-                            <div className="avatar-glow"></div>
+                            <div className="avatar-glow highlight"></div>
                             {photoURL ? (
                                 <img src={photoURL} alt="Profile" className="avatar-main" />
                             ) : (
@@ -160,75 +170,38 @@ export default function ProfileScreen({ onBack }: Props) {
                             )}
 
                             <div className="avatar-actions-overlay">
-                                <button className="action-circle upload" onClick={() => fileInputRef.current?.click()} title="رفع صورة">
+                                <button className="action-circle upload" onClick={() => fileInputRef.current?.click()} title="رفع هوية بصرية">
                                     📷
                                 </button>
-                                <button className="action-circle random" onClick={generateRandomAvatar} title="تغيير عشوائي">
+                                <button className="action-circle random" onClick={generateRandomAvatar} title="توليد رمز عشوائي">
                                     🎲
                                 </button>
                             </div>
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                style={{ display: 'none' }}
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                            />
+                            <input type="file" ref={fileInputRef} style={{ display: 'none' }} accept="image/*" onChange={handleFileUpload} />
                         </div>
-
-                        {uploading && <div className="upload-progress">جاري الرفع...</div>}
-
-                        {!photoURL && (
-                            <div className="avatar-style-selector">
-                                <p className="selector-label">اختر أسلوب الرسم الشخصي</p>
-                                <div className="selector-grid">
-                                    {avatarOptions.map((style, index) => (
-                                        <button
-                                            key={style}
-                                            className={`style-pip ${selectedAvatar === index ? 'active' : ''}`}
-                                            onClick={() => setSelectedAvatar(index)}
-                                        >
-                                            <img src={`https://api.dicebear.com/7.x/${style}/svg?seed=${avatarSeed}`} alt="" />
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {photoURL && (
-                            <button className="use-avatar-instead" onClick={() => setPhotoURL('')}>
-                                العودة لاستخدام الشخصيات الرمزية
-                            </button>
-                        )}
+                        {uploading && <div className="upload-progress">جاري التشفير والرفع...</div>}
                     </div>
 
-                    {/* Data Fields Section */}
+                    {/* Identity Details */}
                     <div className="identity-section">
                         <div className="section-title">
                             <span className="title-line"></span>
-                            <h3>بيانات الهوية</h3>
+                            <h3>توثيق الهوية</h3>
                         </div>
 
                         <div className="profile-form">
-                            <div className="input-group">
-                                <label>الاسم</label>
-                                <div className="input-wrapper">
-                                    <span className="input-icon">📝</span>
-                                    <input
-                                        type="text"
-                                        value={displayName}
-                                        onChange={(e) => setDisplayName(e.target.value)}
-                                        placeholder="مثلاً: صقر البصرة"
-                                        maxLength={25}
-                                    />
+                            <div className="form-double-col">
+                                <div className="input-group">
+                                    <label>الاسم الرسمي</label>
+                                    <div className="input-wrapper">
+                                        <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="الاسم الكامل" />
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="input-group">
-                                <label>البريد الإلكتروني (عضوية بصرة)</label>
-                                <div className="input-wrapper disabled">
-                                    <span className="input-icon">📧</span>
-                                    <input type="email" value={auth.currentUser?.email || ''} disabled />
+                                <div className="input-group">
+                                    <label>البريد الإلكتروني</label>
+                                    <div className="input-wrapper disabled">
+                                        <input type="email" value={auth.currentUser?.email || ''} disabled />
+                                    </div>
                                 </div>
                             </div>
 
@@ -236,36 +209,52 @@ export default function ProfileScreen({ onBack }: Props) {
                                 <div className="input-group half">
                                     <label>تاريخ الميلاد</label>
                                     <div className="input-wrapper">
-                                        <span className="input-icon">📅</span>
-                                        <input
-                                            type="date"
-                                            value={birthDate}
-                                            onChange={(e) => setBirthDate(e.target.value)}
-                                        />
+                                        <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
                                     </div>
                                 </div>
+                                <div className="input-group half">
+                                    <label>الدولة</label>
+                                    <div className="input-wrapper">
+                                        <select value={country} onChange={(e) => setCountry(e.target.value)}>
+                                            <option value="SA">المملكة العربية السعودية</option>
+                                            <option value="KW">الكويت</option>
+                                            <option value="AE">الإمارات العربية المتحدة</option>
+                                            <option value="QA">قطر</option>
+                                            <option value="OM">عمان</option>
+                                            <option value="BH">البحرين</option>
+                                            <option value="EG">مصر</option>
+                                            <option value="OTHER">أخرى</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
 
+                            <div className="form-row">
                                 <div className="input-group half">
                                     <label>الجنس</label>
                                     <div className="input-wrapper">
                                         <select value={gender} onChange={(e) => setGender(e.target.value)}>
                                             <option value="male">ذكر</option>
                                             <option value="female">أنثى</option>
-                                            <option value="prefer_not_to_say">يفضل عدم الذكر</option>
                                         </select>
+                                    </div>
+                                </div>
+                                <div className="input-group half">
+                                    <label>رقم التواصل</label>
+                                    <div className="input-wrapper">
+                                        <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="+XXXXXXXXXXXX" />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="input-group">
-                                <label>رقم الجوال (اختياري)</label>
-                                <div className="input-wrapper">
-                                    <span className="input-icon">📱</span>
-                                    <input
-                                        type="tel"
-                                        value={phoneNumber}
-                                        onChange={(e) => setPhoneNumber(e.target.value)}
-                                        placeholder="+966 5XXX XXXX"
+                                <label>نبذة تعريفية (ستظهر للاعبين)</label>
+                                <div className="input-wrapper textarea-mode">
+                                    <textarea
+                                        value={bio}
+                                        onChange={(e) => setBio(e.target.value)}
+                                        placeholder="اكتب شيئاً عن مهارتك في البصرة..."
+                                        maxLength={150}
                                     />
                                 </div>
                             </div>
@@ -279,12 +268,9 @@ export default function ProfileScreen({ onBack }: Props) {
                     )}
 
                     <div className="profile-footer">
-                        <button
-                            className="prestige-save-btn"
-                            onClick={handleSave}
-                            disabled={loading || uploading}
-                        >
-                            {loading ? 'جاري الحفظ...' : 'حفظ البيانات'}
+                        <button className="prestige-save-btn official-lock" onClick={handleSave} disabled={loading || uploading}>
+                            <span className="lock-icon">{loading ? '⌛' : '🔒'}</span>
+                            <span>{loading ? 'جاري مزامنة السجل...' : 'توثيق وحفظ السجل الرسمي'}</span>
                         </button>
                     </div>
                 </div>
