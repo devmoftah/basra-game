@@ -162,9 +162,8 @@ function calcPoints(played: Card, table: Card[] = []): number {
     
     // 7♦️ (الكوماندو) - acts as joker with target value
     if (v === 7 && played.suit === 'diamonds') {
-        // Points depend on what it's capturing
-        // This will be handled in applyMove
-        return 0;
+        // 7♦️ = 14 points when capturing
+        return 14;
     }
     
     // Jack (الولد) = 50 points (only on Jack or 7♦️)

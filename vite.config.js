@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
-    base: '/basra-game/',
+    base: './',
     plugins: [
         react(),
         VitePWA({
@@ -36,7 +36,7 @@ export default defineConfig({
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
                 globIgnores: ['**/node_modules/**/*'],
-                maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+                maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
             }
         })
     ],
