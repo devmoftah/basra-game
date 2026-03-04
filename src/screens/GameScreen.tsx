@@ -491,14 +491,14 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                                 initial={{ scale: 0.8, y: 50 }}
                                 animate={{ 
                                     scale: isSel ? 1.1 : 1, 
-                                    y: isSel ? -45 : 0,
+                                    y: isSel ? -150 : 0,
                                     rotate: rot
                                 }}
                                 whileHover={{ scale: 1.05 }}
                                 transition={{ 
                                     type: "spring", 
-                                    stiffness: 300, 
-                                    damping: 20 
+                                    stiffness: 400, 
+                                    damping: 25
                                 }}
                                 style={{ 
                                     zIndex: isSel ? 50 : i, 
