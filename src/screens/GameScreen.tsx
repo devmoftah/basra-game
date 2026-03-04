@@ -31,8 +31,8 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const [room, setRoom] = useState<GameRoom | null>(null);
     const [loadingRoom, setLoadingRoom] = useState(true);
     const [turnTimer, setTurnTimer] = useState(7);
-    const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId);
-    const isImageTable = tableSkin?.image?.endsWith('.png');
+    const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId) || STORE_ITEMS.find(s => s.id === 't1')!;
+    const isImageTable = tableSkin.image?.endsWith('.png');
     const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
 
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -345,30 +345,30 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 setHighlightIds(new Set());
             }}>
             <AnimatePresence>
-                    {gs.flashMessage && (
-                        <motion.div
-                            className="flash-msg"
-                            initial={{ scale: 0, opacity: 0 }}
-                            animate={{ 
-                                scale: gs.flashMessage.includes('بصرة') ? [1, 1.2, 1] : [1, 1, 1],
-                                opacity: 1
-                            }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            transition={{ 
-                                duration: gs.flashMessage.includes('بصرة') ? 0.6 : 0.3,
-                                ease: "easeOut"
-                            }}
-                            style={{
-                                color: gs.flashMessage.includes('بصرة') ? '#FFD700' : '#4CAF50',
-                                fontWeight: 'bold',
-                                textShadow: gs.flashMessage.includes('بصرة') ? '0 0 20px rgba(255, 215, 0, 0.8)' : '0 0 10px rgba(76, 175, 80, 0.5)',
-                                fontSize: gs.flashMessage.includes('بصرة') ? '1.5em' : '1.2em'
-                            }}
-                        >
-                            {gs.flashMessage}
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                {gs.flashMessage && (
+                    <motion.div
+                        className="flash-msg"
+                        initial={{ scale: 0, opacity: 0 }}
+                        animate={{
+                            scale: gs.flashMessage.includes('بصرة') ? [1, 1.2, 1] : [1, 1, 1],
+                            opacity: 1
+                        }}
+                        exit={{ scale: 0, opacity: 0 }}
+                        transition={{
+                            duration: gs.flashMessage.includes('بصرة') ? 0.6 : 0.3,
+                            ease: "easeOut"
+                        }}
+                        style={{
+                            color: gs.flashMessage.includes('بصرة') ? '#FFD700' : '#4CAF50',
+                            fontWeight: 'bold',
+                            textShadow: gs.flashMessage.includes('بصرة') ? '0 0 20px rgba(255, 215, 0, 0.8)' : '0 0 10px rgba(76, 175, 80, 0.5)',
+                            fontSize: gs.flashMessage.includes('بصرة') ? '1.5em' : '1.2em'
+                        }}
+                    >
+                        {gs.flashMessage}
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {(gs.phase === 'roundEndScored' || gs.phase === 'gameEnd') && (
                 <ResultOverlay gs={gs} countdown={countdown} onExit={onExitGame} />
@@ -388,13 +388,13 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     <div className="gsb-sub">هم | نحن (الهدف 250)</div>
                 </div>
                 <div className="gtb-right">
-                    <motion.div 
+                    <motion.div
                         className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}
-                        animate={{ 
+                        animate={{
                             scale: isActuallyMyTurn ? [1, 1.1, 1] : [1, 1, 1],
                             boxShadow: isActuallyMyTurn ? '0 0 20px rgba(76, 175, 80, 0.6)' : '0 0 10px rgba(0, 0, 0, 0.3)'
                         }}
-                        transition={{ 
+                        transition={{
                             duration: 2,
                             repeat: isActuallyMyTurn ? Infinity : 0,
                             ease: "easeInOut"
@@ -411,30 +411,34 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
                 <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
 
-                {!isImageTable && (
-                    <div className="sadu-border" style={{
-                        background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined,
-                        margin: 'auto',
-                        marginTop: '10%'
-                    }}>
-                        <div className="felt-center" style={{
-                            background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : undefined
+                <div className={isImageTable ? "sadu-table-image-layout" : "sadu-border"} style={{
+                    background: !isImageTable && tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : 'transparent',
+                    margin: 'auto',
+                    marginTop: '10%',
+                    position: 'relative',
+                    border: isImageTable ? 'none' : undefined,
+                    boxShadow: isImageTable ? 'none' : undefined
+                }}>
+                    {!isImageTable && <div className="sadu-stripe-h" />}
+                    <div className="sadu-body">
+                        {!isImageTable && <div className="sadu-stripe-v" />}
+                        <div className={isImageTable ? "felt-center-image" : "felt-center"} style={{
+                            background: !isImageTable && tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : 'transparent',
+                            width: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minHeight: isImageTable ? '300px' : '280px'
                         }}>
                             {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
                             {gs.tableCards.map((c, i) => (
                                 <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-35px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
                             ))}
                         </div>
+                        {!isImageTable && <div className="sadu-stripe-v" />}
                     </div>
-                )}
-                {isImageTable && (
-                    <div className="felt-center-image" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
-                        {gs.tableCards.map((c, i) => (
-                            <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-35px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
-                        ))}
-                    </div>
-                )}
+                    {!isImageTable && <div className="sadu-stripe-h" />}
+                </div>
                 {previewMove && gs.players[previewMove.playerIndex] && (
                     <div className="preview-layer">
                         <CardComp
@@ -443,9 +447,8 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                             hl={true}
                             cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
                             style={{
-                                boxShadow: '0 0 40px rgba(255,215,0,0.9)',
-                                animation: 'cardEntry 0.3s ease-out',
-                                transform: 'scale(1.2)' /* Extra boost for the played card */
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
+                                animation: 'cardEntry 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
                             }}
                         />
                         <div className="player-indicator-tag">
@@ -454,7 +457,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     </div>
                 )}
                 <AnimatePresence>
-                    <motion.div 
+                    <motion.div
                         className="deck-info"
                         initial={{ opacity: 0, scale: 0.8 }}
                         animate={{ opacity: 1, scale: 1 }}
@@ -468,7 +471,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                                 size="small"
                             />
                         )}
-                        <motion.span 
+                        <motion.span
                             initial={{ scale: 0 }}
                             animate={{ scale: 1 }}
                             transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -489,33 +492,33 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                             <motion.div
                                 key={c.id}
                                 initial={{ scale: 0.8, y: 50 }}
-                                animate={{ 
-                                    scale: isSel ? 1.1 : 1, 
+                                animate={{
+                                    scale: isSel ? 1.1 : 1,
                                     y: isSel ? -150 : 0,
                                     rotate: rot
                                 }}
                                 whileHover={{ scale: 1.05 }}
-                                transition={{ 
-                                    type: "spring", 
-                                    stiffness: 400, 
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 400,
                                     damping: 25
                                 }}
-                                style={{ 
-                                    zIndex: isSel ? 50 : i, 
+                                style={{
+                                    zIndex: isSel ? 50 : i,
                                     opacity: previewMove ? 0.5 : 1,
                                     display: 'inline-block'
                                 }}
                             >
-                                <CardComp 
-                                    card={c} 
-                                    size="large" 
-                                    onClick={(e: any) => handleSelect(e, c)} 
-                                    hl={isSel} 
-                                    cardSkin={myCardSkin} 
-                                    style={{ 
+                                <CardComp
+                                    card={c}
+                                    size="large"
+                                    onClick={(e: any) => handleSelect(e, c)}
+                                    hl={isSel}
+                                    cardSkin={myCardSkin}
+                                    style={{
                                         transform: `rotate(${rot}deg)`,
                                         pointerEvents: 'auto'
-                                    }} 
+                                    }}
                                 />
                             </motion.div>
                         );
