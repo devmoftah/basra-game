@@ -24,7 +24,7 @@ interface JoinHistory {
     }
 }
 
-const JOIN_LIMIT = 2;
+const JOIN_LIMIT = 2; // Move it back to top if preferred or just keep the one inside
 
 function getJoinHistory(): JoinHistory {
     try {
@@ -91,19 +91,31 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
     let targetRoomRef: any = null;
 
     if (!querySnapshot.empty) {
+        console.log(`🔍 Found ${querySnapshot.docs.length} waiting rooms. Checking limits...`);
+
         // Priority 1: Check if player is already in one of these rooms (rejoining active session)
+        // BUT: only if they haven't exceeded the join limit for it (to allow escaping sleepy admins)
         for (const docSnap of querySnapshot.docs) {
             const data = docSnap.data() as GameRoom;
+            const joinCount = getRoomJoinCount(docSnap.id);
+
             if (data.playerUids.includes(user.uid)) {
-                targetRoomRef = docSnap.ref;
-                break;
+                if (joinCount < JOIN_LIMIT) {
+                    console.log(`🔗 Rejoining existing room ${docSnap.id} (Join count: ${joinCount})`);
+                    targetRoomRef = docSnap.ref;
+                    break;
+                } else {
+                    console.log(`🚫 Skipping room ${docSnap.id} even though player is in it (Limit reached: ${joinCount})`);
+                }
             }
         }
 
         // Priority 2: Find first room that hasn't reached the join limit (frustration escape)
         if (!targetRoomRef) {
             for (const docSnap of querySnapshot.docs) {
-                if (getRoomJoinCount(docSnap.id) < JOIN_LIMIT) {
+                const joinCount = getRoomJoinCount(docSnap.id);
+                if (joinCount < JOIN_LIMIT) {
+                    console.log(`✅ Found suitable room ${docSnap.id} (Join count: ${joinCount})`);
                     targetRoomRef = docSnap.ref;
                     break;
                 }
@@ -112,7 +124,7 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
     }
 
     if (!targetRoomRef) {
-        // No room found or all rooms were blacklisted, create a new one
+        console.log("🆕 No suitable rooms found (all full, empty, or blacklisted). Creating new room...");
         return await createRoom(user.uid, userName, skinId);
     }
 
