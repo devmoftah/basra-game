@@ -179,11 +179,14 @@
 }
 
 .sadu-border {
-    border: 6px solid var(--gold);
-    border-radius: 12px;
+    border: 4px solid var(--gold);
+    border-radius: 16px;
     overflow: hidden;
-    box-shadow: 0 0 0 2px var(--gold-dark), 0 10px 30px rgba(0, 0, 0, .5);
-    width: 260px;
+    box-shadow: 0 0 0 2px var(--gold-dark), 0 15px 40px rgba(0, 0, 0, .6);
+    width: 92%;
+    /* Expanded width */
+    max-width: 450px;
+    transition: all 0.3s ease;
 }
 
 .sadu-stripe-h {
@@ -211,14 +214,16 @@
 
 .felt-center {
     flex: 1;
-    min-height: 150px;
-    background: radial-gradient(ellipse at center, #3a7d5a, #1b4d35);
+    min-height: 280px;
+    /* Increased height */
+    background: radial-gradient(ellipse at center, #2d6b4a 0%, #1a3e30 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
     overflow: visible;
     transition: background 0.5s ease;
+    padding: 20px;
 }
 
 /* ── IMAGE-BASED TABLE SKIN ──────────────────────── */
@@ -291,12 +296,14 @@
 
 /* ── CARD ──────────────────────────────────────────── */
 .playing-card {
-    width: 68px;
-    height: 98px;
+    width: 82px;
+    /* Increased from 68px */
+    height: 118px;
+    /* Increased from 98px */
     background: white;
-    border-radius: 7px;
+    border-radius: 8px;
     border: 1px solid #ccc;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, .2);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, .3);
     position: relative;
     display: flex;
     align-items: center;
@@ -307,8 +314,9 @@
 }
 
 .card-lg {
-    width: 72px;
-    height: 104px;
+    width: 105px;
+    /* Large cards for hand/preview */
+    height: 150px;
 }
 
 .card-btn {
@@ -455,10 +463,11 @@
 }
 
 .ps-cards .playing-card {
-    width: 28px;
-    height: 40px;
-    border-radius: 3px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    width: 38px;
+    /* Slightly larger for visibility */
+    height: 54px;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 
 /* ── HAND ────────────────────────────────────────── */
@@ -467,27 +476,34 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 0 8px 12px;
-    gap: 2px;
+    padding: 0 8px 10px;
+    gap: 0;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+    width: 100%;
 }
 
 .hand-label {
     font-size: 11px;
-    color: var(--gold-dark);
+    color: var(--gold-light);
     font-weight: 700;
     min-height: 16px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .hand-cards {
     display: flex;
     align-items: flex-end;
     justify-content: center;
-    height: 118px;
+    height: 160px;
+    /* Increased to accommodate larger cards */
     position: relative;
+    width: 100%;
+    margin-top: -10px;
 }
 
 .hand-cards .playing-card {
-    margin-right: -28px;
+    margin-right: -45px;
+    /* More overlap for larger cards */
     transform-origin: bottom center;
 }
 

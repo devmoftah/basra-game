@@ -377,7 +377,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         }}>
                             {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
                             {gs.tableCards.map((c, i) => (
-                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-24px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
+                                <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-35px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
                             ))}
 
                             {previewMove && gs.players[previewMove.playerIndex] && (
@@ -388,8 +388,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                                         hl={true}
                                         cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
                                         style={{
-                                            boxShadow: '0 0 30px rgba(255,215,0,0.8)',
-                                            animation: 'cardEntry 0.3s ease-out'
+                                            boxShadow: '0 0 40px rgba(255,215,0,0.9)',
+                                            animation: 'cardEntry 0.3s ease-out',
+                                            transform: 'scale(1.2)' /* Extra boost for the played card */
                                         }}
                                     />
                                     <div className="player-indicator-tag">
@@ -417,9 +418,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 <div className="hand-label">{human.basraPoints > 0 && <span>⭐ بصرة: {human.basraPoints}</span>}</div>
                 <div className="hand-cards">
                     {human.hand.map((c: any, i: number) => {
-                        const rot = (i - (human.hand.length - 1) / 2) * 7;
+                        const rot = (i - (human.hand.length - 1) / 2) * 8;
                         const isSel = selectedCard?.id === c.id;
-                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={myCardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -25 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
+                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={myCardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -45 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
                     })}
                 </div>
             </div>
