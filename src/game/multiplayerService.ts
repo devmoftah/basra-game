@@ -16,6 +16,64 @@ import { ref, onDisconnect as rtdbOnDisconnect, remove } from 'firebase/database
 import { GameRoom } from './basraTypes';
 import { createInitialState, dealNewRound } from './basraEngine';
 
+// ── Persistence helpers for room joining ──────────────────────────────
+interface JoinHistory {
+    [roomId: string]: {
+        count: number;
+        lastUpdate: number;
+    }
+}
+
+const JOIN_LIMIT = 2;
+
+function getJoinHistory(): JoinHistory {
+    try {
+        const history = localStorage.getItem('basra_join_history');
+        return history ? JSON.parse(history) : {};
+    } catch {
+        return {};
+    }
+}
+
+function saveJoinHistory(history: JoinHistory) {
+    try {
+        localStorage.setItem('basra_join_history', JSON.stringify(history));
+    } catch (e) {
+        console.warn("localStorage failed", e);
+    }
+}
+
+function getRoomJoinCount(roomId: string): number {
+    const history = getJoinHistory();
+    return history[roomId]?.count || 0;
+}
+
+function incrementRoomJoinCount(roomId: string) {
+    const history = getJoinHistory();
+    const current = history[roomId] || { count: 0, lastUpdate: Date.now() };
+
+    history[roomId] = {
+        count: current.count + 1,
+        lastUpdate: Date.now()
+    };
+
+    // Cleanup: remove entries older than 24 hours or keep only last 20 recent
+    const now = Date.now();
+    const filteredHistory: JoinHistory = {};
+    const roomIds = Object.keys(history);
+
+    const sortedRoomIds = roomIds
+        .sort((a, b) => history[b].lastUpdate - history[a].lastUpdate)
+        .slice(0, 20);
+
+    for (const rid of sortedRoomIds) {
+        if (now - history[rid].lastUpdate < 24 * 60 * 60 * 1000) {
+            filteredHistory[rid] = history[rid];
+        }
+    }
+    saveJoinHistory(filteredHistory);
+}
+
 export async function findOrCreateRoom(userName: string, skinId: string): Promise<string> {
     const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
@@ -26,16 +84,37 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
     const q = query(
         roomsRef,
         where('status', '==', 'waiting'),
-        limit(1) // Just grab one candidate
+        limit(10) // Grab several candidates to allow skipping
     );
     const querySnapshot = await getDocs(q);
 
-    if (querySnapshot.empty) {
-        // No room found, create a new one
-        return await createRoom(user.uid, userName, skinId);
+    let targetRoomRef: any = null;
+
+    if (!querySnapshot.empty) {
+        // Priority 1: Check if player is already in one of these rooms (rejoining active session)
+        for (const docSnap of querySnapshot.docs) {
+            const data = docSnap.data() as GameRoom;
+            if (data.playerUids.includes(user.uid)) {
+                targetRoomRef = docSnap.ref;
+                break;
+            }
+        }
+
+        // Priority 2: Find first room that hasn't reached the join limit (frustration escape)
+        if (!targetRoomRef) {
+            for (const docSnap of querySnapshot.docs) {
+                if (getRoomJoinCount(docSnap.id) < JOIN_LIMIT) {
+                    targetRoomRef = docSnap.ref;
+                    break;
+                }
+            }
+        }
     }
 
-    const targetRoomRef = querySnapshot.docs[0].ref;
+    if (!targetRoomRef) {
+        // No room found or all rooms were blacklisted, create a new one
+        return await createRoom(user.uid, userName, skinId);
+    }
 
     // 2. Use a transaction to safely join
     try {
@@ -103,6 +182,7 @@ export async function findOrCreateRoom(userName: string, skinId: string): Promis
 
         if (result.roomId) {
             setupPlayerDisconnectHandler(result.roomId, user.uid);
+            incrementRoomJoinCount(result.roomId); // Track that we successfully joined
             return result.roomId;
         }
         throw new Error("Failed to join room");
@@ -139,6 +219,7 @@ async function createRoom(uid: string, userName: string, skinId: string): Promis
 
     const docRef = await addDoc(roomsRef, newRoomData);
     setupPlayerDisconnectHandler(docRef.id, uid);
+    incrementRoomJoinCount(docRef.id); // Also track creating a room
     return docRef.id;
 }
 
@@ -198,21 +279,21 @@ export async function manualRoomCleanup(roomId: string) {
     try {
         const roomRef = doc(db, 'rooms', roomId);
         const roomSnap = await getDoc(roomRef);
-        
+
         if (!roomSnap.exists()) {
             console.log(`🗑️ Room ${roomId} already deleted`);
             return;
         }
-        
+
         const roomData = roomSnap.data() as GameRoom;
         const humanPlayers = roomData.players.filter(p => p.isHuman);
-        
+
         console.log(`🔍 Room ${roomId} has ${humanPlayers.length} human players`);
-        
+
         if (humanPlayers.length === 0) {
             console.log(`🗑️ Manually deleting room ${roomId} - no human players`);
             await deleteDoc(roomRef);
-            
+
             // Also delete from RTDB
             try {
                 const rtdbRef = ref(rtdb, `disconnects/${roomId}`);
@@ -254,10 +335,10 @@ export async function replacePlayerWithBot(roomId: string, playerUid: string) {
 
             // Keep the same status based on game phase
             const gamePhase = roomData.gameState.phase;
-            
+
             // Only keep 'playing' status if game is actually playing
             const newStatus = (gamePhase === 'playing') ? 'playing' : 'waiting';
-            
+
             transaction.update(roomRef, {
                 status: newStatus,
                 players: updatedPlayers,
@@ -304,7 +385,7 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.winner': null,
                     'gameState.flashMessage': 'تم إغلاق الطاولة - لم يتبق لاعبون بشريون'
                 });
-                
+
                 return true; // Signal that room should be deleted
             } else {
                 let updatedPlayers = [...roomData.players];
@@ -344,18 +425,18 @@ export async function handlePlayerDisconnect(roomId: string, playerUid: string) 
                     'gameState.players': updatedPlayers,
                     'gameState.flashMessage': flashMessage
                 });
-                
+
                 return false; // Don't delete room
             }
         });
-        
+
         // If we closed the room, delete it immediately
         if (shouldDeleteRoom) {
             setTimeout(async () => {
                 try {
                     await deleteDoc(roomRef);
                     console.log(`🗑️ Room ${roomId} deleted immediately - no human players left`);
-                    
+
                     // Also try to delete from RTDB if it exists
                     try {
                         const rtdbRef = ref(rtdb, `disconnects/${roomId}`);
