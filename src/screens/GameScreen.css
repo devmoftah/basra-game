@@ -5,8 +5,8 @@
 .game-root {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    width: 100%;
+    height: 100vh;
+    width: 100vw;
     background: var(--sand);
     overflow: hidden;
     position: relative;
@@ -167,14 +167,16 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    z-index: 0;
 }
 
 /* Sadu Table */
 .sadu-table {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -58%);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
     z-index: 1;
 }
 
@@ -228,10 +230,11 @@
 
 /* ── IMAGE-BASED TABLE SKIN ──────────────────────── */
 .sadu-table-image {
-    border-radius: 16px;
-    overflow: hidden;
-    width: 320px;
-    height: 420px;
+    width: 100%;
+    height: 100%;
+    box-shadow: none;
+    background-size: cover;
+    background-position: center;
 }
 
 .sadu-table-image .sadu-border-image {
@@ -478,8 +481,9 @@
     align-items: center;
     padding: 0 8px 10px;
     gap: 0;
-    background: linear-gradient(to top, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
     width: 100%;
+    position: relative;
+    z-index: 10;
 }
 
 .hand-label {

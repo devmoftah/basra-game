@@ -330,11 +330,19 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const isActuallyMyTurn = gs.currentPlayer === myIndex && gs.phase === 'playing' && !previewMove;
 
     return (
-        <div className="game-root" onClick={() => {
-            setSelectedCard(null);
-            setValidCapture(null);
-            setHighlightIds(new Set());
-        }}>
+        <div className="game-root"
+            style={{
+                backgroundImage: isImageTable ? `url(${tableSkin!.image})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundColor: isImageTable ? 'transparent' : 'var(--sand)'
+            }}
+            onClick={() => {
+                setSelectedCard(null);
+                setValidCapture(null);
+                setHighlightIds(new Set());
+            }}>
             {gs.flashMessage && <div className="flash-msg">{gs.flashMessage}</div>}
 
             {(gs.phase === 'roundEndScored' || gs.phase === 'gameEnd') && (
@@ -367,40 +375,48 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
                 <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
 
-                <div className={`sadu-table ${isImageTable ? 'sadu-table-image' : ''}`} style={{
-                    background: isImageTable ? 'none' : (tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined),
-                    ...(isImageTable ? { backgroundImage: `url(${tableSkin!.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {})
-                }}>
-                    <div className={`sadu-border ${isImageTable ? 'sadu-border-image' : ''}`}>
-                        <div className={`felt-center ${isImageTable ? 'felt-center-image' : ''}`} style={{
-                            background: isImageTable ? 'transparent' : (tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : undefined)
+                {!isImageTable && (
+                    <div className="sadu-border" style={{
+                        background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined,
+                        margin: 'auto',
+                        marginTop: '10%'
+                    }}>
+                        <div className="felt-center" style={{
+                            background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : undefined
                         }}>
                             {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
                             {gs.tableCards.map((c, i) => (
                                 <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-35px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
                             ))}
-
-                            {previewMove && gs.players[previewMove.playerIndex] && (
-                                <div className="preview-layer">
-                                    <CardComp
-                                        card={previewMove.card}
-                                        size="large"
-                                        hl={true}
-                                        cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
-                                        style={{
-                                            boxShadow: '0 0 40px rgba(255,215,0,0.9)',
-                                            animation: 'cardEntry 0.3s ease-out',
-                                            transform: 'scale(1.2)' /* Extra boost for the played card */
-                                        }}
-                                    />
-                                    <div className="player-indicator-tag">
-                                        {gs.players[previewMove.playerIndex].name}
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
-                </div>
+                )}
+                {isImageTable && (
+                    <div className="felt-center-image" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
+                        {gs.tableCards.map((c, i) => (
+                            <CardComp key={c.id} card={c} style={{ transform: `rotate(${(i % 4 - 2) * 6}deg)`, marginRight: i > 0 ? '-35px' : '0', zIndex: i }} hl={highlightIds.has(c.id)} />
+                        ))}
+                    </div>
+                )}
+                {previewMove && gs.players[previewMove.playerIndex] && (
+                    <div className="preview-layer">
+                        <CardComp
+                            card={previewMove.card}
+                            size="large"
+                            hl={true}
+                            cardSkin={STORE_ITEMS.find(s => s.id === gs.players[previewMove.playerIndex].activeSkinId)}
+                            style={{
+                                boxShadow: '0 0 40px rgba(255,215,0,0.9)',
+                                animation: 'cardEntry 0.3s ease-out',
+                                transform: 'scale(1.2)' /* Extra boost for the played card */
+                            }}
+                        />
+                        <div className="player-indicator-tag">
+                            {gs.players[previewMove.playerIndex].name}
+                        </div>
+                    </div>
+                )}
                 <div className="deck-info">
                     {gs.deck.length > 0 && (
                         <CardComp
