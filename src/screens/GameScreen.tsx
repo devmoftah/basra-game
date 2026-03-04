@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     GameState, Card, CaptureOption,
     SUIT_SYMBOL, SUIT_COLOR, cardDisplay, Suit, GameRoom,
@@ -343,7 +344,31 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 setValidCapture(null);
                 setHighlightIds(new Set());
             }}>
-            {gs.flashMessage && <div className="flash-msg">{gs.flashMessage}</div>}
+            <AnimatePresence>
+                    {gs.flashMessage && (
+                        <motion.div
+                            className="flash-msg"
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ 
+                                scale: gs.flashMessage.includes('بصرة') ? [1, 1.2, 1] : [1, 1, 1],
+                                opacity: 1
+                            }}
+                            exit={{ scale: 0, opacity: 0 }}
+                            transition={{ 
+                                duration: gs.flashMessage.includes('بصرة') ? 0.6 : 0.3,
+                                ease: "easeOut"
+                            }}
+                            style={{
+                                color: gs.flashMessage.includes('بصرة') ? '#FFD700' : '#4CAF50',
+                                fontWeight: 'bold',
+                                textShadow: gs.flashMessage.includes('بصرة') ? '0 0 20px rgba(255, 215, 0, 0.8)' : '0 0 10px rgba(76, 175, 80, 0.5)',
+                                fontSize: gs.flashMessage.includes('بصرة') ? '1.5em' : '1.2em'
+                            }}
+                        >
+                            {gs.flashMessage}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
             {(gs.phase === 'roundEndScored' || gs.phase === 'gameEnd') && (
                 <ResultOverlay gs={gs} countdown={countdown} onExit={onExitGame} />
@@ -363,10 +388,21 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     <div className="gsb-sub">هم | نحن (الهدف 250)</div>
                 </div>
                 <div className="gtb-right">
-                    <div className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}>
+                    <motion.div 
+                        className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}
+                        animate={{ 
+                            scale: isActuallyMyTurn ? [1, 1.1, 1] : [1, 1, 1],
+                            boxShadow: isActuallyMyTurn ? '0 0 20px rgba(76, 175, 80, 0.6)' : '0 0 10px rgba(0, 0, 0, 0.3)'
+                        }}
+                        transition={{ 
+                            duration: 2,
+                            repeat: isActuallyMyTurn ? Infinity : 0,
+                            ease: "easeInOut"
+                        }}
+                    >
                         {previewMove ? `● يلعب: ${gs.players[previewMove.playerIndex]?.name || '...'}` :
                             (isActuallyMyTurn ? `● دورك (${turnTimer}ث)` : `● ${gs.players[gs.currentPlayer]?.name || '...'} (${turnTimer}ث)`)}
-                    </div>
+                    </motion.div>
                 </div>
             </header>
 
@@ -417,17 +453,30 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         </div>
                     </div>
                 )}
-                <div className="deck-info">
-                    {gs.deck.length > 0 && (
-                        <CardComp
-                            card={{ id: 'deck', suit: 'spades', value: 0 }}
-                            style={{ isBack: true, transform: 'scale(0.8)' }}
-                            cardSkin={myCardSkin}
-                            size="small"
-                        />
-                    )}
-                    <span>{gs.deck.length}</span>
-                </div>
+                <AnimatePresence>
+                    <motion.div 
+                        className="deck-info"
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                    >
+                        {gs.deck.length > 0 && (
+                            <CardComp
+                                card={{ id: 'deck', suit: 'spades', value: 0 }}
+                                style={{ isBack: true, transform: 'scale(0.8)' }}
+                                cardSkin={myCardSkin}
+                                size="small"
+                            />
+                        )}
+                        <motion.span 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                        >
+                            {gs.deck.length}
+                        </motion.span>
+                    </motion.div>
+                </AnimatePresence>
             </main>
 
             <div className="player-hand-area">
@@ -436,7 +485,40 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     {human.hand.map((c: any, i: number) => {
                         const rot = (i - (human.hand.length - 1) / 2) * 8;
                         const isSel = selectedCard?.id === c.id;
-                        return <CardComp key={c.id} card={c} size="large" onClick={(e: any) => handleSelect(e, c)} hl={isSel} cardSkin={myCardSkin} style={{ transform: `rotate(${rot}deg) translateY(${isSel ? -45 : 0}px)`, zIndex: isSel ? 50 : i, opacity: previewMove ? 0.5 : 1 }} />;
+                        return (
+                            <motion.div
+                                key={c.id}
+                                initial={{ scale: 0.8, y: 50 }}
+                                animate={{ 
+                                    scale: isSel ? 1.1 : 1, 
+                                    y: isSel ? -45 : 0,
+                                    rotate: rot
+                                }}
+                                whileHover={{ scale: 1.05 }}
+                                transition={{ 
+                                    type: "spring", 
+                                    stiffness: 300, 
+                                    damping: 20 
+                                }}
+                                style={{ 
+                                    zIndex: isSel ? 50 : i, 
+                                    opacity: previewMove ? 0.5 : 1,
+                                    display: 'inline-block'
+                                }}
+                            >
+                                <CardComp 
+                                    card={c} 
+                                    size="large" 
+                                    onClick={(e: any) => handleSelect(e, c)} 
+                                    hl={isSel} 
+                                    cardSkin={myCardSkin} 
+                                    style={{ 
+                                        transform: `rotate(${rot}deg)`,
+                                        pointerEvents: 'auto'
+                                    }} 
+                                />
+                            </motion.div>
+                        );
                     })}
                 </div>
             </div>
