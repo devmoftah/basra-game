@@ -1,0 +1,41 @@
+/* Classic Premium Table Skin */
+.table-skin-t5 {
+    background-image: url('/assets/skins/tables/classic_premium.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: transparent;
+    
+    /* Ensure proper table dimensions */
+    width: 100%;
+    height: 100%;
+    
+    /* Card positioning areas */
+    .table-surface {
+        position: relative;
+        width: 100%;
+        height: 100%;
+    }
+    
+    /* Player position indicators */
+    .player-area {
+        position: absolute;
+        width: 20%;
+        height: 30%;
+    }
+    
+    .player-area-0 { top: 5%; left: 5%; }
+    .player-area-1 { top: 5%; right: 5%; }
+    .player-area-2 { bottom: 5%; right: 5%; }
+    .player-area-3 { bottom: 5%; left: 5%; }
+    
+    /* Center table cards area */
+    .table-cards-area {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40%;
+        height: 30%;
+    }
+}
