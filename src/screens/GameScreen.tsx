@@ -31,7 +31,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const [room, setRoom] = useState<GameRoom | null>(null);
     const [loadingRoom, setLoadingRoom] = useState(true);
     const [turnTimer, setTurnTimer] = useState(7);
-    const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId) || STORE_ITEMS.find(s => s.id === 't1')!;
+    const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId) || STORE_ITEMS.find(s => s.id === 't5')!;
     const isImageTable = tableSkin.image?.endsWith('.png');
     const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
 
