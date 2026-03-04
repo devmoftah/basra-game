@@ -31,6 +31,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const [loadingRoom, setLoadingRoom] = useState(true);
     const [turnTimer, setTurnTimer] = useState(7);
     const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId);
+    const isImageTable = tableSkin?.image?.endsWith('.png');
     const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
 
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
@@ -105,7 +106,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         setRoom(roomWithId);
                         setGs(roomWithId.gameState);
                         setLoadingRoom(false);
-                        
+
                         console.log('✅ Room joined successfully:', roomWithId.id);
                     } else {
                         // Room deleted
@@ -140,12 +141,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         setTimeout(async () => {
             try {
                 const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture, room?.id);
-                
+
                 // Set different deadlines based on player type
                 const currentPlayerObj = nextGs.players[nextGs.currentPlayer];
                 const deadline = currentPlayerObj?.isHuman ? 15000 : 1000; // 15s for human, 1s for bot
                 nextGs.turnDeadline = Date.now() + deadline;
-                
+
                 await updateDoc(doc(db, 'rooms', curRoom.id), { gameState: nextGs });
             } catch (e) {
                 console.error('Move failed:', e);
@@ -241,12 +242,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         clearInterval(timer);
                         isScoringInProgress.current = false;
                         const dealtGs = dealNewRound(gs);
-                        
+
                         // Set deadline based on first player of new round
                         const firstPlayer = dealtGs.players[dealtGs.currentPlayer];
                         const deadline = firstPlayer?.isHuman ? 15000 : 3000;
                         dealtGs.turnDeadline = Date.now() + deadline;
-                        
+
                         updateDoc(doc(db, 'rooms', room.id), { gameState: dealtGs });
                         return 0;
                     }
@@ -366,12 +367,13 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
                 <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
 
-                <div className="sadu-table" style={{
-                    background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined
+                <div className={`sadu-table ${isImageTable ? 'sadu-table-image' : ''}`} style={{
+                    background: isImageTable ? 'none' : (tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : undefined),
+                    ...(isImageTable ? { backgroundImage: `url(${tableSkin!.image})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' } : {})
                 }}>
-                    <div className="sadu-border">
-                        <div className="felt-center" style={{
-                            background: tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : undefined
+                    <div className={`sadu-border ${isImageTable ? 'sadu-border-image' : ''}`}>
+                        <div className={`felt-center ${isImageTable ? 'felt-center-image' : ''}`} style={{
+                            background: isImageTable ? 'transparent' : (tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[0]} 0%, ${tableSkin.colors[1]} 100%)` : undefined)
                         }}>
                             {gs.tableCards.length === 0 && !previewMove && <span className="empty-hint">الأرض فارغة</span>}
                             {gs.tableCards.map((c, i) => (

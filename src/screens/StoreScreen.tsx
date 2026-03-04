@@ -124,10 +124,12 @@ export default function StoreScreen({
                                         <div
                                             className="table-top-preview"
                                             style={{
-                                                background: `radial-gradient(circle, ${item.colors?.[0]} 0%, ${item.colors?.[1]} 100%)`
+                                                background: item.image?.endsWith('.png')
+                                                    ? `url(${item.image}) center/cover no-repeat`
+                                                    : `radial-gradient(circle, ${item.colors?.[0]} 0%, ${item.colors?.[1]} 100%)`
                                             }}
                                         >
-                                            <div className="table-inner-border" />
+                                            {!item.image?.endsWith('.png') && <div className="table-inner-border" />}
                                         </div>
                                     ) : (
                                         <span className="item-main-icon">{item.image}</span>
