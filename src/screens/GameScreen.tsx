@@ -25,18 +25,38 @@ interface PendingMove {
     capture: CaptureOption | null;
 }
 
-// Helper: deterministic scatter positions for table cards
-function getTableCardPosition(cardId: string) {
+// Helper: optimized scatter using a "slot" system based on card index to prevent clustering
+function getTableCardPosition(cardId: string, index: number) {
     let hash = 0;
     for (let i = 0; i < cardId.length; i++) {
         hash = ((hash << 5) - hash) + cardId.charCodeAt(i);
         hash = hash & hash;
     }
     hash = Math.abs(hash);
+
+    // Predefined zones in the center square to ensure spacing
+    const slots = [
+        { x: 38, y: 38 }, // Top Left
+        { x: 62, y: 62 }, // Bottom Right
+        { x: 62, y: 38 }, // Top Right
+        { x: 38, y: 62 }, // Bottom Left
+        { x: 50, y: 50 }, // Center
+        { x: 50, y: 35 }, // Top Center
+        { x: 50, y: 65 }, // Bottom Center
+        { x: 35, y: 50 }, // Left Center
+        { x: 65, y: 50 }, // Right Center
+    ];
+
+    const slot = slots[index % slots.length];
+
+    // Add 8% max "jitter" to keep it looking natural
+    const jitterX = (hash % 10) - 5;
+    const jitterY = ((hash >> 4) % 10) - 5;
+
     return {
-        left: 15 + (hash % 55),
-        top: 15 + ((hash >> 7) % 55),
-        rotation: ((hash >> 14) % 30) - 15,
+        left: slot.x + jitterX,
+        top: slot.y + jitterY,
+        rotation: ((hash >> 14) % 26) - 13, // -13 to +13 degrees
     };
 }
 
@@ -454,23 +474,37 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                             )}
                             <AnimatePresence>
                                 {gs.tableCards.map((c, i) => {
-                                    const pos = getTableCardPosition(c.id);
+                                    const pos = getTableCardPosition(c.id, i);
                                     return (
                                         <motion.div
                                             key={c.id}
-                                            initial={{ scale: 1.8, opacity: 0, x: '-50%', y: '-50%', rotate: pos.rotation }}
-                                            animate={{ scale: 1, opacity: 1, x: '-50%', y: '-50%', rotate: pos.rotation }}
-                                            exit={{ scale: 0, opacity: 0, x: '-50%', y: '-50%' }}
+                                            initial={{
+                                                scale: 2.2,
+                                                opacity: 0,
+                                                x: '-50%',
+                                                y: '-100%',
+                                                rotate: pos.rotation + 25
+                                            }}
+                                            animate={{
+                                                scale: 1,
+                                                opacity: 1,
+                                                x: '-50%',
+                                                y: '-50%',
+                                                rotate: pos.rotation
+                                            }}
+                                            exit={{ scale: 0.5, opacity: 0 }}
                                             transition={{
                                                 type: "spring",
-                                                stiffness: 300,
+                                                stiffness: 240,
                                                 damping: 22,
+                                                mass: 1.5
                                             }}
                                             style={{
                                                 position: 'absolute',
                                                 left: `${pos.left}%`,
                                                 top: `${pos.top}%`,
                                                 zIndex: i,
+                                                filter: 'drop-shadow(0 6px 20px rgba(0,0,0,0.5))'
                                             }}
                                         >
                                             <CardComp card={c} hl={highlightIds.has(c.id)} size="table" />
