@@ -16,7 +16,7 @@ export const STORE_ITEMS: StoreItem[] = [
     { id: 'c4', name: 'بنك 50,000 كوينز', price: 69.99, image: '🏦', category: 'coins' },
 
     // 🃏 CARD SKINS (Libyan Clubs)
-    { id: 'k1', name: 'طقم نادي دارنس', price: 400, image: '/assets/skins/cards/card_back_darnes.png', category: 'cards', colors: ['#ffd700', '#000000'] },
+    { id: 'k1', name: 'طقم نادي دارنس', price: 400, image: './assets/skins/cards/card_back_darnes.png', category: 'cards', colors: ['#ffd700', '#000000'] },
     { id: 'k2', name: 'طقم النادي الأفريقي', price: 400, image: '⚪🟢', category: 'cards', colors: ['#ffffff', '#00703c'] },
     { id: 'k3', name: 'طقم الأهلي طرابلس', price: 500, image: '🟢⚪', category: 'cards', colors: ['#00703c', '#ffffff'], isNew: true },
     { id: 'k4', name: 'طقم الاتحاد', price: 500, image: '🔴⚪', category: 'cards', colors: ['#cc0000', '#ffffff'] },
@@ -25,8 +25,8 @@ export const STORE_ITEMS: StoreItem[] = [
     { id: 'k7', name: 'طقم نادي المدينة', price: 400, image: '⚪⚫', category: 'cards', colors: ['#ffffff', '#000000'] },
 
     // 🧶 TABLE SKINS
-    { id: 't6', name: 'طاولة EZTB', price: 1, image: '/assets/skins/tables/eztb.png', category: 'tables', colors: ['#8B4513', '#D2691E'], isNew: true },
-    { id: 't5', name: 'طاولة تجريبية', price: 1, image: '/assets/skins/tables/classic_premium.png', category: 'tables', colors: ['#8B4513', '#D2691E'], isNew: true },
+    { id: 't6', name: 'طاولة EZTB', price: 1, image: './assets/skins/tables/eztb.png', category: 'tables', colors: ['#8B4513', '#D2691E'], isNew: true },
+    { id: 't5', name: 'طاولة تجريبية', price: 1, image: './assets/skins/tables/classic_premium.png', category: 'tables', colors: ['#8B4513', '#D2691E'], isNew: true },
     { id: 't1', name: 'طاولة دارنس الذهبية', price: 1000, image: '🧶', category: 'tables', colors: ['#ffd700', '#111111'] },
     { id: 't2', name: 'طاولة الأفريقي الخضراء', price: 1000, image: '🧶', category: 'tables', colors: ['#00703c', '#ffffff'] },
     { id: 't3', name: 'طاولة الزعيم (الأهلي)', price: 1200, image: '🧶', category: 'tables', colors: ['#004400', '#009900'], isNew: true },
