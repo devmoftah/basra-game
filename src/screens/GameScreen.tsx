@@ -34,30 +34,32 @@ function getTableCardPosition(cardId: string, index: number) {
     }
     hash = Math.abs(hash);
 
-    // Predefined zones in the center square to ensure spacing
     const slots = [
-        { x: 38, y: 38 }, // Top Left
-        { x: 62, y: 62 }, // Bottom Right
-        { x: 62, y: 38 }, // Top Right
-        { x: 38, y: 62 }, // Bottom Left
-        { x: 50, y: 50 }, // Center
-        { x: 50, y: 35 }, // Top Center
-        { x: 50, y: 65 }, // Bottom Center
-        { x: 35, y: 50 }, // Left Center
-        { x: 65, y: 50 }, // Right Center
+        { x: 38, y: 38 }, { x: 62, y: 62 }, { x: 62, y: 38 }, { x: 38, y: 62 },
+        { x: 50, y: 50 }, { x: 50, y: 35 }, { x: 50, y: 65 }, { x: 35, y: 50 }, { x: 65, y: 50 },
     ];
 
     const slot = slots[index % slots.length];
-
-    // Add 8% max "jitter" to keep it looking natural
     const jitterX = (hash % 10) - 5;
     const jitterY = ((hash >> 4) % 10) - 5;
 
     return {
         left: slot.x + jitterX,
         top: slot.y + jitterY,
-        rotation: ((hash >> 14) % 26) - 13, // -13 to +13 degrees
+        rotation: ((hash >> 14) % 26) - 13,
     };
+}
+
+// Helper: Get player position relative to the table for animation origins
+function getPlayerPositionStyles(playerIdx: number, myIdx: number) {
+    const relativePos = (playerIdx - myIdx + 4) % 4;
+    switch (relativePos) {
+        case 0: return { left: '50%', top: '150%', x: '-50%', y: '-50%' }; // Bottom (Me)
+        case 1: return { left: '-50%', top: '50%', x: '-50%', y: '-50%' };  // Left
+        case 2: return { left: '50%', top: '-50%', x: '-50%', y: '-50%' };  // Top
+        case 3: return { left: '150%', top: '50%', x: '-50%', y: '-50%' }; // Right
+        default: return { left: '50%', top: '50%', x: '-50%', y: '-50%' };
+    }
 }
 
 export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSkinId }: Props) {
@@ -382,24 +384,27 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
             <AnimatePresence>
                 {gs.flashMessage && (
                     <motion.div
-                        className="flash-msg"
-                        initial={{ scale: 0, opacity: 0 }}
+                        className={`flash-msg ${gs.flashMessage.includes('بصرة') ? 'basra-flash' : ''}`}
+                        initial={{ scale: 0, y: 50, opacity: 0 }}
                         animate={{
-                            scale: gs.flashMessage.includes('بصرة') ? [1, 1.2, 1] : [1, 1, 1],
+                            scale: gs.flashMessage.includes('بصرة') ? [1, 1.4, 1.1] : 1,
+                            y: 0,
                             opacity: 1
                         }}
-                        exit={{ scale: 0, opacity: 0 }}
+                        exit={{ scale: 0.5, opacity: 0 }}
                         transition={{
-                            duration: gs.flashMessage.includes('بصرة') ? 0.6 : 0.3,
-                            ease: "easeOut"
-                        }}
-                        style={{
-                            color: gs.flashMessage.includes('بصرة') ? '#FFD700' : '#4CAF50',
-                            fontWeight: 'bold',
-                            textShadow: gs.flashMessage.includes('بصرة') ? '0 0 20px rgba(255, 215, 0, 0.8)' : '0 0 10px rgba(76, 175, 80, 0.5)',
-                            fontSize: gs.flashMessage.includes('بصرة') ? '1.5em' : '1.2em'
+                            type: "spring",
+                            stiffness: 400,
+                            damping: 15
                         }}
                     >
+                        {gs.flashMessage.includes('بصرة') && (
+                            <motion.div
+                                className="basra-glow"
+                                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                                transition={{ duration: 1, repeat: Infinity }}
+                            />
+                        )}
                         {gs.flashMessage}
                     </motion.div>
                 )}
@@ -442,9 +447,9 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
             </header>
 
             <main className="game-table-area">
-                <Opponent player={turnsSafe((myIndex + 2) % 4)} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} />
-                <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} />
-                <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} />
+                <Opponent player={turnsSafe((myIndex + 2) % 4)} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} timer={turnTimer} />
+                <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} timer={turnTimer} />
+                <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} timer={turnTimer} />
 
                 <div className={isImageTable ? "sadu-table-image-layout" : "sadu-border"} style={{
                     background: !isImageTable && tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : 'transparent',
@@ -475,36 +480,58 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                             <AnimatePresence>
                                 {gs.tableCards.map((c, i) => {
                                     const pos = getTableCardPosition(c.id, i);
+                                    // If it's a new card (not in initial 4), it comes from THE PREVIOUS player
+                                    // because the turn has already incremented in the state
+                                    const isInitialDeal = i < 4 && gs.deck.length >= 40;
+                                    const actualActorIdx = (gs.currentPlayer - 1 + 4) % 4;
+                                    const playerPos = getPlayerPositionStyles(actualActorIdx, myIndex);
+
                                     return (
                                         <motion.div
-                                            key={c.id}
-                                            initial={{
-                                                scale: 2.2,
+                                            key={`${gs.roundNumber}-${c.id}`}
+                                            initial={isInitialDeal ? {
+                                                scale: 0.2,
                                                 opacity: 0,
-                                                x: '-50%',
-                                                y: '-100%',
-                                                rotate: pos.rotation + 25
+                                                left: '85%',
+                                                top: '85%',
+                                                rotate: 0
+                                            } : {
+                                                scale: 0.5,
+                                                opacity: 0,
+                                                left: playerPos.left,
+                                                top: playerPos.top,
+                                                rotate: 0
                                             }}
                                             animate={{
                                                 scale: 1,
                                                 opacity: 1,
-                                                x: '-50%',
-                                                y: '-50%',
+                                                left: `${pos.left}%`,
+                                                top: `${pos.top}%`,
                                                 rotate: pos.rotation
                                             }}
-                                            exit={{ scale: 0.5, opacity: 0 }}
+                                            exit={{
+                                                scale: 0.2,
+                                                opacity: 0,
+                                                x: actualActorIdx === (myIndex + 2) % 4 ? '0%' : // top
+                                                    actualActorIdx === (myIndex + 1) % 4 ? '-400%' : // left
+                                                        actualActorIdx === (myIndex + 3) % 4 ? '400%' : // right
+                                                            '0%', // bottom (default)
+                                                y: actualActorIdx === (myIndex + 2) % 4 ? '-400%' : // top
+                                                    actualActorIdx === myIndex ? '400%' : // bottom
+                                                        '0%',
+                                                transition: { duration: 0.5, ease: "circIn" }
+                                            }}
                                             transition={{
                                                 type: "spring",
-                                                stiffness: 240,
-                                                damping: 22,
-                                                mass: 1.5
+                                                stiffness: 150,
+                                                damping: 20,
+                                                delay: isInitialDeal ? i * 0.15 : 0 // No delay for player throws
                                             }}
                                             style={{
                                                 position: 'absolute',
-                                                left: `${pos.left}%`,
-                                                top: `${pos.top}%`,
                                                 zIndex: i,
-                                                filter: 'drop-shadow(0 6px 20px rgba(0,0,0,0.5))'
+                                                transform: 'translate(-50%, -50%)',
+                                                filter: 'drop-shadow(0 6px 15px rgba(0,0,0,0.3))'
                                             }}
                                         >
                                             <CardComp card={c} hl={highlightIds.has(c.id)} size="table" />
@@ -525,13 +552,18 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         exit={{ opacity: 0 }}
                     >
                         <motion.div
-                            initial={{ scale: 0.3, rotate: -15, y: 100 }}
-                            animate={{ scale: 1, rotate: 0, y: 0 }}
+                            initial={{
+                                scale: 0.3,
+                                rotate: -15,
+                                ...getPlayerPositionStyles(previewMove.playerIndex, myIndex)
+                            }}
+                            animate={{ scale: 1, rotate: 0, x: '-50%', y: '-50%', left: '50%', top: '50%' }}
                             transition={{
                                 type: "spring",
                                 stiffness: 350,
                                 damping: 18,
                             }}
+                            style={{ position: 'absolute' }}
                         >
                             <CardComp
                                 card={previewMove.card}
@@ -580,6 +612,14 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
             </main>
 
             <div className="player-hand-area">
+                <div className="my-avatar-container">
+                    <Opponent
+                        player={{ ...human, name: auth.currentUser?.displayName || 'أنا' }}
+                        pos="bottom-me"
+                        active={gs.currentPlayer === myIndex}
+                        timer={turnTimer}
+                    />
+                </div>
                 <div className="hand-label">{human.basraPoints > 0 && <span>⭐ بصرة: {human.basraPoints}</span>}</div>
                 <div className="hand-cards">
                     {human.hand.map((c: any, i: number) => {
@@ -587,18 +627,27 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         const isSel = selectedCard?.id === c.id;
                         return (
                             <motion.div
-                                key={c.id}
-                                initial={{ scale: 0.8, y: 50 }}
+                                key={`${gs.roundNumber}-${c.id}`}
+                                initial={{
+                                    scale: 0.3,
+                                    opacity: 0,
+                                    y: -300, // Come from table area
+                                    x: 200,   // Offset to make it look like it's from the deck
+                                    rotate: 0
+                                }}
                                 animate={{
-                                    scale: isSel ? 1.1 : 1,
-                                    y: isSel ? -150 : 0,
+                                    scale: isSel ? 1.05 : 1, // Slightly less scale jump too
+                                    opacity: 1,
+                                    y: isSel ? -50 : 0, // Reduced from -150 to -50
+                                    x: 0,
                                     rotate: rot
                                 }}
                                 whileHover={{ scale: 1.05 }}
                                 transition={{
                                     type: "spring",
-                                    stiffness: 400,
-                                    damping: 25
+                                    stiffness: 300,
+                                    damping: 25,
+                                    delay: i * 0.1 + 0.5 // Start after table cards
                                 }}
                                 style={{
                                     zIndex: isSel ? 50 : i,
@@ -673,23 +722,77 @@ function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
     );
 }
 
-function Opponent({ player, pos, active }: any) {
+function Opponent({ player, pos, active, timer }: any) {
     const skin = STORE_ITEMS.find(s => s.id === player.activeSkinId);
+
+    // SVG Circle logic
+    const radius = 22;
+    const circumference = 2 * Math.PI * radius;
+    const maxTime = player.isHuman ? 15 : 3; // Match the logic in performMoveLocal
+    const progress = active ? (timer / maxTime) : 0;
+    const dashOffset = circumference - (progress * circumference);
+    const isLow = active && timer <= 5 && player.isHuman;
+
     return (
         <div className={`player-slot ps-${pos} ${active ? 'ps-active' : ''}`}>
-            <div className="ps-avatar"><img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt="" />{active && <div className="ps-ring" />}</div>
-            <div className="ps-name">{player.name}{player.basraPoints > 0 && <span className="ps-pts">{player.basraPoints}⭐</span>}</div>
-            <div className="ps-cards">
-                {Array.from({ length: player.hand.length }).map((_, i) => (
-                    <CardComp
-                        key={i}
-                        card={{ id: `back-${i}`, suit: 'spades', value: 0 }}
-                        style={{ isBack: true, marginLeft: i > 0 ? '-45px' : '0' }}
-                        cardSkin={skin}
-                        size="small"
-                    />
-                ))}
+            <div className="ps-avatar">
+                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt="" />
+                <AnimatePresence>
+                    {active && (
+                        <motion.div
+                            className="ps-ring-container"
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 1.1 }}
+                        >
+                            <svg className="ps-timer-svg" viewBox="0 0 50 50">
+                                <circle
+                                    className="ps-timer-bg"
+                                    cx="25" cy="25" r={radius}
+                                    stroke="rgba(255,255,255,0.2)"
+                                    strokeWidth="3"
+                                />
+                                <motion.circle
+                                    className={`ps-timer-circle ${isLow ? 'timer-low' : ''}`}
+                                    cx="25" cy="25" r={radius}
+                                    strokeDasharray={circumference}
+                                    initial={{ strokeDashoffset: circumference }}
+                                    animate={{ strokeDashoffset: dashOffset }}
+                                    transition={{ duration: 1, ease: "linear" }}
+                                    stroke="var(--gold)"
+                                    strokeWidth="3"
+                                    fill="none"
+                                />
+                            </svg>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </div>
+            <div className="ps-name">{player.name}{player.basraPoints > 0 && <span className="ps-pts">{player.basraPoints}⭐</span>}</div>
+            {pos !== 'bottom-me' && (
+                <div className="ps-cards">
+                    {Array.from({ length: player.hand.length }).map((_, i) => (
+                        <motion.div
+                            key={i}
+                            initial={{ scale: 0.3, opacity: 0, x: 100, y: 100 }}
+                            animate={{ scale: 1, opacity: 1, x: 0, y: 0 }}
+                            transition={{
+                                delay: (i * 0.1) + 0.2,
+                                type: "spring",
+                                stiffness: 200
+                            }}
+                            style={{ marginLeft: i > 0 ? '-45px' : '0', display: 'inline-block' }}
+                        >
+                            <CardComp
+                                card={{ id: `back-${i}`, suit: 'spades', value: 0 }}
+                                style={{ isBack: true }}
+                                cardSkin={skin}
+                                size="small"
+                            />
+                        </motion.div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }
