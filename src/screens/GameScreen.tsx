@@ -67,7 +67,10 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     const [gs, setGs] = useState<GameState | null>(null);
     const [room, setRoom] = useState<GameRoom | null>(null);
     const [loadingRoom, setLoadingRoom] = useState(true);
-    const [turnTimer, setTurnTimer] = useState(7);
+
+    // We'll use this ref to track if we just made a move to avoid snapshot overwrite "jitter"
+    const lastMoveTimeRef = useRef<number>(0);
+
     const tableSkin = STORE_ITEMS.find(s => s.id === activeTableSkinId) || STORE_ITEMS.find(s => s.id === 't5')!;
     const isImageTable = tableSkin.image?.endsWith('.png');
     const myCardSkin = STORE_ITEMS.find(s => s.id === activeCardSkinId) || defaultSkin;
@@ -142,7 +145,12 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                         // so we add it manually for join/leave logic
                         const roomWithId = { ...data, id: s.id };
                         setRoom(roomWithId);
-                        setGs(roomWithId.gameState);
+
+                        // Optimistic Check: Don't overwrite state if we just made a local move
+                        // (prevents the "snap back" feeling whenFirestore hasn't noticed our move yet)
+                        if (Date.now() - lastMoveTimeRef.current > 2500) {
+                            setGs(roomWithId.gameState);
+                        }
                         setLoadingRoom(false);
 
                         console.log('✅ Room joined successfully:', roomWithId.id);
@@ -174,20 +182,25 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         if (!curGs || !curRoom || isProcessingMove.current) return;
         isProcessingMove.current = true;
 
+        // Start local animation immediately
         setPreviewMove({ card, playerIndex: curGs.currentPlayer, capture });
+        lastMoveTimeRef.current = Date.now();
+
+        // Optimistic State Update: don't wait for Firestore to show results
+        const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture, room?.id);
+        const currentPlayerObj = nextGs.players[nextGs.currentPlayer];
+        const deadline = currentPlayerObj?.isHuman ? 15000 : 1000;
+        nextGs.turnDeadline = Date.now() + deadline;
 
         setTimeout(async () => {
             try {
-                const nextGs = applyMove(curGs, curGs.currentPlayer, card, capture, room?.id);
-
-                // Set different deadlines based on player type
-                const currentPlayerObj = nextGs.players[nextGs.currentPlayer];
-                const deadline = currentPlayerObj?.isHuman ? 15000 : 1000; // 15s for human, 1s for bot
-                nextGs.turnDeadline = Date.now() + deadline;
+                // Apply locally first for smoothness
+                setGs(nextGs);
 
                 await updateDoc(doc(db, 'rooms', curRoom.id), { gameState: nextGs });
             } catch (e) {
                 console.error('Move failed:', e);
+                lastMoveTimeRef.current = 0; // Allow snapshot recovery on error
             } finally {
                 setPreviewMove(null);
                 setSelectedCard(null);
@@ -195,7 +208,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                 setHighlightIds(new Set());
                 isProcessingMove.current = false;
             }
-        }, 600);
+        }, 500); // 500ms allows the card flight animation to breathe
     };
 
     // ── Bot auto-play: fires 1.5s after it becomes a bot's turn ───────
@@ -223,33 +236,7 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
         return () => clearTimeout(t);
     }, [gs?.currentPlayer, gs?.phase, room?.status, isHost]);
 
-    // ── Timer: countdown display + human turn timeout ──────────────────
-    useEffect(() => {
-        if (!gs || room?.status !== 'playing' || gs.phase !== 'playing') return;
-
-        const timer = setInterval(() => {
-            const latestGs = gsRef.current;
-            if (!latestGs?.turnDeadline) return;
-            const diff = Math.max(0, Math.ceil((latestGs.turnDeadline - Date.now()) / 1000));
-            setTurnTimer(diff);
-
-            if (diff === 0 && !isProcessingMove.current) {
-                const myIdx = latestGs.players.findIndex(p => p.uid === auth.currentUser?.uid);
-                const effectiveMyIdx = myIdx >= 0 ? myIdx : 0;
-                // Only auto-play for human timeout (bots are handled by bot effect above)
-                if (latestGs.currentPlayer === effectiveMyIdx) {
-                    const p = latestGs.players[effectiveMyIdx];
-                    if (!p || p.hand.length === 0) return;
-                    const randomCard = p.hand[Math.floor(Math.random() * p.hand.length)];
-                    const captures = findCaptures(randomCard, latestGs.tableCards);
-                    const bestCap = captures.length > 0 ? captures[0] : null;
-                    performMoveLocal(randomCard, bestCap, latestGs, roomRef.current);
-                }
-            }
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, [gs?.currentPlayer, gs?.turnDeadline, room?.status]);
+    // Timer moved to components to avoid GameScreen re-renders
 
     // ── Flash message clear ────────────────────────────────────────────
     useEffect(() => {
@@ -362,9 +349,13 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     }
 
     const myIndexRaw = gs.players.findIndex(p => p.uid === auth.currentUser?.uid);
-    const myIndex = myIndexRaw >= 0 ? myIndexRaw : 0; // ✅ fallback to seat 0 if UID not matched
-    const human = gs.players[myIndex] || { hand: [], basraPoints: 0 };
-    const turnsSafe = (idx: number) => gs.players[idx] || { name: '...', hand: [], basraPoints: 0, activeSkinId: 'k1' };
+    const myIndex = myIndexRaw >= 0 ? myIndexRaw : 0;
+    const human = gs.players[myIndex] || { hand: [], basraPoints: 0, isHuman: true };
+    const turnsSafe = (idx: number) => {
+        const p = gs.players[idx];
+        if (!p) return { name: '...', hand: [], basraPoints: 0, activeSkinId: 'k1', isHuman: false };
+        return p;
+    };
     const isActuallyMyTurn = gs.currentPlayer === myIndex && gs.phase === 'playing' && !previewMove;
 
     return (
@@ -428,28 +419,28 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                     <div className="gsb-sub">هم | نحن (الهدف 250)</div>
                 </div>
                 <div className="gtb-right">
-                    <motion.div
-                        className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}
-                        animate={{
-                            scale: isActuallyMyTurn ? [1, 1.1, 1] : [1, 1, 1],
-                            boxShadow: isActuallyMyTurn ? '0 0 20px rgba(76, 175, 80, 0.6)' : '0 0 10px rgba(0, 0, 0, 0.3)'
+                    <TurnStatusIndicator
+                        isActuallyMyTurn={isActuallyMyTurn}
+                        currentPlayerName={gs.players[gs.currentPlayer]?.name}
+                        previewMove={previewMove}
+                        deadline={gs.turnDeadline}
+                        onTimeout={() => {
+                            if (isActuallyMyTurn && !isProcessingMove.current) {
+                                const p = gs.players[myIndex];
+                                if (!p || p.hand.length === 0) return;
+                                const randomCard = p.hand[Math.floor(Math.random() * p.hand.length)];
+                                const captures = findCaptures(randomCard, gs.tableCards);
+                                performMoveLocal(randomCard, captures[0] || null);
+                            }
                         }}
-                        transition={{
-                            duration: 2,
-                            repeat: isActuallyMyTurn ? Infinity : 0,
-                            ease: "easeInOut"
-                        }}
-                    >
-                        {previewMove ? `● يلعب: ${gs.players[previewMove.playerIndex]?.name || '...'}` :
-                            (isActuallyMyTurn ? `● دورك (${turnTimer}ث)` : `● ${gs.players[gs.currentPlayer]?.name || '...'} (${turnTimer}ث)`)}
-                    </motion.div>
+                    />
                 </div>
             </header>
 
             <main className="game-table-area">
-                <Opponent player={turnsSafe((myIndex + 2) % 4)} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} timer={turnTimer} />
-                <Opponent player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} timer={turnTimer} />
-                <Opponent player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} timer={turnTimer} />
+                <OpponentMemo player={turnsSafe((myIndex + 2) % 4)} pos="top" active={gs.currentPlayer === (myIndex + 2) % 4} deadline={gs.turnDeadline} />
+                <OpponentMemo player={turnsSafe((myIndex + 1) % 4)} pos="left" active={gs.currentPlayer === (myIndex + 1) % 4} deadline={gs.turnDeadline} />
+                <OpponentMemo player={turnsSafe((myIndex + 3) % 4)} pos="right" active={gs.currentPlayer === (myIndex + 3) % 4} deadline={gs.turnDeadline} />
 
                 <div className={isImageTable ? "sadu-table-image-layout" : "sadu-border"} style={{
                     background: !isImageTable && tableSkin?.colors ? `radial-gradient(circle, ${tableSkin.colors[1]} 0%, ${tableSkin.colors[0]} 100%)` : 'transparent',
@@ -613,11 +604,11 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
 
             <div className="player-hand-area">
                 <div className="my-avatar-container">
-                    <Opponent
+                    <OpponentMemo
                         player={{ ...human, name: auth.currentUser?.displayName || 'أنا' }}
                         pos="bottom-me"
                         active={gs.currentPlayer === myIndex}
-                        timer={turnTimer}
+                        deadline={gs.turnDeadline}
                     />
                 </div>
                 <div className="hand-label">{human.basraPoints > 0 && <span>⭐ بصرة: {human.basraPoints}</span>}</div>
@@ -676,11 +667,11 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
     );
 }
 
-function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
+function CardCompRaw({ card, style, hl, onClick, size, cardSkin }: any) {
+    // ... logic same but inside memo
     const s = SUIT_SYMBOL[card.suit as Suit];
     const v = cardDisplay(card.value);
     const isBack = style?.isBack;
-
     const skin = cardSkin || STORE_ITEMS.find(s => s.id === 'k1');
     const isImageSkin = skin?.image?.endsWith('.png');
     const isSmall = size === 'small';
@@ -721,17 +712,58 @@ function CardComp({ card, style, hl, onClick, size, cardSkin }: any) {
         </div>
     );
 }
+const CardComp = React.memo(CardCompRaw);
 
-function Opponent({ player, pos, active, timer }: any) {
+function TurnStatusIndicator({ isActuallyMyTurn, currentPlayerName, previewMove, deadline, onTimeout }: any) {
+    const [timerValue, setTimerValue] = useState(0);
+
+    useEffect(() => {
+        if (!deadline) return;
+        const interval = setInterval(() => {
+            const diff = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            setTimerValue(diff);
+            if (diff === 0) {
+                onTimeout?.();
+                clearInterval(interval);
+            }
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [deadline]);
+
+    return (
+        <motion.div
+            className={`turn-ind ${isActuallyMyTurn ? 'my-turn' : ''}`}
+            animate={{
+                scale: isActuallyMyTurn ? [1, 1.05, 1] : [1, 1, 1],
+            }}
+            transition={{ duration: 2, repeat: isActuallyMyTurn ? Infinity : 0 }}
+        >
+            {previewMove ? `● يلعب: ${currentPlayerName || '...'}` :
+                (isActuallyMyTurn ? `● دورك (${timerValue}ث)` : `● ${currentPlayerName || '...'} (${timerValue}ث)`)}
+        </motion.div>
+    );
+}
+
+function Opponent({ player, pos, active, deadline }: any) {
+    const [timer, setTimer] = useState(15);
     const skin = STORE_ITEMS.find(s => s.id === player.activeSkinId);
 
-    // SVG Circle logic
+    useEffect(() => {
+        if (!active || !deadline) return;
+        const interval = setInterval(() => {
+            const diff = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+            setTimer(diff);
+        }, 300); // Higher frequency for smooth circle
+        return () => clearInterval(interval);
+    }, [active, deadline]);
+
     const radius = 22;
     const circumference = 2 * Math.PI * radius;
-    const maxTime = player.isHuman ? 15 : 3; // Match the logic in performMoveLocal
-    const progress = active ? (timer / maxTime) : 0;
+    const isHumanPlayer = player.isHuman !== undefined ? player.isHuman : (player.uid && !player.uid.startsWith('bot-'));
+    const maxTime = isHumanPlayer ? 15 : 3;
+    const progress = active ? Math.min(1, Math.max(0, timer / maxTime)) : 0;
     const dashOffset = circumference - (progress * circumference);
-    const isLow = active && timer <= 5 && player.isHuman;
+    const isLow = active && timer <= 5 && isHumanPlayer;
 
     return (
         <div className={`player-slot ps-${pos} ${active ? 'ps-active' : ''}`}>
@@ -796,6 +828,8 @@ function Opponent({ player, pos, active, timer }: any) {
         </div>
     );
 }
+
+const OpponentMemo = React.memo(Opponent);
 
 function ResultOverlay({ gs, countdown, onExit }: any) {
     const r = (gs as any).lastRoundScores || [0, 0];
