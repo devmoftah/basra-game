@@ -636,9 +636,15 @@ export default function GameScreen({ onExitGame, activeCardSkinId, activeTableSk
                                 whileHover={{ scale: 1.05 }}
                                 transition={{
                                     type: "spring",
-                                    stiffness: 300,
-                                    damping: 25,
-                                    delay: i * 0.1 + 0.5 // Start after table cards
+                                    stiffness: 500,
+                                    damping: 35,
+                                    // These properties handle the "selection jump" - no delay
+                                    y: { delay: 0, stiffness: 700, damping: 25 },
+                                    scale: { delay: 0, stiffness: 700, damping: 25 },
+                                    // These properties handle the "entrance" - keep the dealing delay
+                                    x: { delay: i * 0.08 + 0.5 },
+                                    rotate: { delay: i * 0.08 + 0.5 },
+                                    opacity: { delay: i * 0.08 + 0.5 }
                                 }}
                                 style={{
                                     zIndex: isSel ? 50 : i,
